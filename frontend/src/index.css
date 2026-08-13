@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  color: #14231A;
+  background-color: #FBFBF9;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: 'Outfit', 'Poppins', ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* visible keyboard focus ring across the app */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #0B8E36;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/*
+  container-nd: The main centered page wrapper.
+  - max-width of 1200px keeps content from stretching edge-to-edge on wide screens.
+  - auto margins center it horizontally.
+  - Generous horizontal padding gives breathing room on all screen sizes.
+*/
+.container-nd {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* Kenyan flag vertical strip used in hero and other accents */
+.hero-flag-strip {
+  background: linear-gradient(
+    to bottom,
+    #000000 0%,
+    #000000 25%,
+    #D61F26 25%,
+    #D61F26 50%,
+    #0B8E36 50%,
+    #0B8E36 75%,
+    #FFFFFF 75%,
+    #FFFFFF 100%
+  );
+}
