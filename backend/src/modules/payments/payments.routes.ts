@@ -5,9 +5,11 @@ import { requireAuth } from '../../middleware/auth.middleware';
 const router = Router();
 
 router.post('/initiate', requireAuth, paymentsController.initiate);
+router.post('/confirm-vote', requireAuth, paymentsController.confirmVote);
 router.get('/:id', requireAuth, paymentsController.getStatus);
 
-// Public webhook endpoint — Safaricom calls this directly, no user JWT present.
-router.post('/mpesa/callback', paymentsController.mpesaCallback);
+// Kopo Kopo Webhook Callback (Public endpoint called by Kopo Kopo servers)
+router.post('/kopokopo/callback', paymentsController.kopokopoCallback);
+router.post('/mpesa/callback', paymentsController.kopokopoCallback);
 
 export default router;

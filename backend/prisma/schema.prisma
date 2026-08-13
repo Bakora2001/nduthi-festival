@@ -67,6 +67,7 @@ model User {
   payments          Payment[]
   auditLogs         AuditLog[]
   notifications     Notification[]
+  nominee           Nominee?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -109,6 +110,9 @@ model Nominee {
   category          Category            @relation(fields: [categoryId], references: [id])
   motorcycleId      String?
   motorcycle        Motorcycle?         @relation(fields: [motorcycleId], references: [id])
+  userId            String?             @unique
+  user              User?               @relation(fields: [userId], references: [id])
+  imageUrl          String?
   displayImageType  NomineeImageType    @default(MOTORCYCLE_PHOTO)
   voteCount         Int                 @default(0)
   isFeatured        Boolean             @default(false)

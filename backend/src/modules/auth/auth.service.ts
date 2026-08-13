@@ -9,6 +9,7 @@ interface RegisterInput {
   email: string;
   phone?: string;
   password: string;
+  roleName?: 'REGISTERED_VOTER' | 'NOMINEE';
 }
 
 interface LoginInput {
@@ -23,11 +24,11 @@ export const authService = {
       throw new AppError('An account with this email already exists', 409);
     }
 
-    // Every registered voter defaults to the REGISTERED_VOTER role.
+    const roleName = input.roleName || 'REGISTERED_VOTER';
     const role = await prisma.role.upsert({
-      where: { name: 'REGISTERED_VOTER' },
+      where: { name: roleName },
       update: {},
-      create: { name: 'REGISTERED_VOTER' },
+      create: { name: roleName },
     });
 
     const passwordHash = await bcrypt.hash(input.password, 12);
@@ -44,9 +45,19 @@ export const authService = {
       include: { role: true },
     });
 
-    // TODO: send email verification link via nodemailer.
+    const tokens = await this.issueTokens(user.id, user.role.name);
 
-    return this.issueTokens(user.id, user.role.name);
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role.name,
+      },
+      ...tokens,
+    };
   },
 
   async login(input: LoginInput) {
@@ -64,7 +75,40 @@ export const authService = {
       throw new AppError('Invalid email or password', 401);
     }
 
-    return this.issueTokens(user.id, user.role.name);
+    const tokens = await this.issueTokens(user.id, user.role.name);
+
+    return {
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role.name,
+      },
+      ...tokens,
+    };
+  },
+
+  async getMe(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { role: true, nominee: { include: { category: true, motorcycle: true } } },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    return {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      role: user.role.name,
+      nominee: user.nominee,
+    };
   },
 
   async issueTokens(userId: string, role: string) {
