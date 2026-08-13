@@ -5,7 +5,6 @@ dotenv.config();
 function required(name: string, fallback?: string): string {
   const value = process.env[name] ?? fallback;
   if (value === undefined) {
-    // eslint-disable-next-line no-console
     console.warn(`[env] Missing environment variable: ${name}`);
     return '';
   }
@@ -22,35 +21,31 @@ export const env = {
   jwt: {
     accessSecret: required('JWT_ACCESS_SECRET', 'dev_access_secret'),
     refreshSecret: required('JWT_REFRESH_SECRET', 'dev_refresh_secret'),
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '1d',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
   },
 
+  kopokopo: {
+    baseUrl: process.env.KOPOKOPO_BASE_URL || 'https://api.kopokopo.com',
+    clientId: required('KOPOKOPO_CLIENT_ID'),
+    clientSecret: required('KOPOKOPO_CLIENT_SECRET'),
+    apiKey: required('KOPOKOPO_API_KEY'),
+    tillNumber: process.env.KOPOKOPO_TILL_NUMBER || '4681183',
+    callbackUrl: process.env.KOPOKOPO_CALLBACK_URL || 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback',
+  },
+
   smtp: {
-    host: process.env.SMTP_HOST || '',
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
     port: Number(process.env.SMTP_PORT) || 587,
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.EMAIL_FROM || 'Nduthi Festival & Awards Kenya <no-reply@nduthiawards.co.ke>',
+    from: process.env.EMAIL_FROM || 'Nduthi Festival & Awards Kenya <nduthifestivalkenya@gmail.com>',
   },
 
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
-    apiKey: process.env.CLOUDINARY_API_KEY || '',
-    apiSecret: process.env.CLOUDINARY_API_SECRET || '',
-  },
-
-  mpesa: {
-    env: process.env.MPESA_ENV || 'sandbox',
-    consumerKey: process.env.MPESA_CONSUMER_KEY || '',
-    consumerSecret: process.env.MPESA_CONSUMER_SECRET || '',
-    shortcode: process.env.MPESA_SHORTCODE || '',
-    passkey: process.env.MPESA_PASSKEY || '',
-    callbackUrl: process.env.MPESA_CALLBACK_URL || '',
-  },
+  adminEmail: process.env.ADMIN_EMAIL || 'nduthifestivalkenya@gmail.com',
 
   rateLimit: {
     windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-    max: Number(process.env.RATE_LIMIT_MAX) || 200,
+    max: Number(process.env.RATE_LIMIT_MAX) || 500,
   },
 };

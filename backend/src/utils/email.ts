@@ -79,7 +79,7 @@ export const emailService = {
     amount: number;
     mpesaReference?: string;
   }) {
-    const adminEmail = process.env.ADMIN_EMAIL || 'nduthifestivalkenya@gmail.com';
+    const adminEmail = env.adminEmail;
     const subject = `🔔 [Nduthi Festival] New KES ${params.amount} Vote Payment Received`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">

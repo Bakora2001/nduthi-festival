@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { env } from '../../config/env';
 import { logger } from '../../utils/logger';
 
 interface KopoKopoTokenResponse {
@@ -30,17 +31,20 @@ class KopoKopoService {
   private tokenExpiresAt: number = 0;
 
   constructor() {
-    this.baseUrl = process.env.KOPOKOPO_BASE_URL || 'https://api.kopokopo.com';
-    this.clientId = process.env.KOPOKOPO_CLIENT_ID || 'OrRI8JpF7J0xK4DRVEhrbtu-wj_5ZHqumc41Zu2LIuk';
-    this.clientSecret = process.env.KOPOKOPO_CLIENT_SECRET || 'lUPl_5FamMk5Jx1mfU9Corgbb5Sq1z8pvfqXhkObIdQ';
-    this.apiKey = process.env.KOPOKOPO_API_KEY || '5550833039b3109bc2e905d3a68f5f85a98e3792';
-    this.tillNumber = process.env.KOPOKOPO_TILL_NUMBER || '4681183';
+    this.baseUrl = env.kopokopo.baseUrl;
+    this.clientId = env.kopokopo.clientId;
+    this.clientSecret = env.kopokopo.clientSecret;
+    this.apiKey = env.kopokopo.apiKey;
+    this.tillNumber = env.kopokopo.tillNumber;
+    this.callbackUrl = env.kopokopo.callbackUrl;
 
-    let cb = process.env.KOPOKOPO_CALLBACK_URL || 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback';
-    if (!cb.startsWith('https://')) {
-      cb = 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback';
+    // Safety: Kopo Kopo production REQUIRES HTTPS callback
+    if (!this.callbackUrl.startsWith('https://')) {
+      logger.warn(`[KopoKopo] Callback URL must be HTTPS for production. Got: ${this.callbackUrl}`);
+      this.callbackUrl = 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback';
     }
-    this.callbackUrl = cb;
+
+    logger.info(`[KopoKopo] Initialized — Till: ${this.tillNumber} | Callback: ${this.callbackUrl}`);
   }
 
   /**
@@ -65,11 +69,12 @@ class KopoKopoService {
   public async getAccessToken(): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     if (this.cachedToken && this.tokenExpiresAt > now + 60) {
+      logger.debug('[KopoKopo OAuth] Using cached token');
       return this.cachedToken;
     }
 
     try {
-      logger.info(`[KopoKopo OAuth] Requesting OAuth token from ${this.baseUrl}/oauth/v1/users/auth`);
+      logger.info(`[KopoKopo OAuth] Requesting token from ${this.baseUrl}/oauth/v1/users/auth`);
       const response = await axios.post<KopoKopoTokenResponse>(
         `${this.baseUrl}/oauth/v1/users/auth`,
         {
@@ -91,7 +96,7 @@ class KopoKopoService {
       return this.cachedToken!;
     } catch (err: any) {
       try {
-        logger.info(`[KopoKopo OAuth] Retrying via fallback endpoint ${this.baseUrl}/oauth/token...`);
+        logger.info(`[KopoKopo OAuth] Primary endpoint failed, retrying ${this.baseUrl}/oauth/token...`);
         const fallbackRes = await axios.post<KopoKopoTokenResponse>(
           `${this.baseUrl}/oauth/token`,
           {
@@ -108,9 +113,10 @@ class KopoKopoService {
         logger.info('[KopoKopo OAuth] Access token acquired from fallback endpoint');
         return this.cachedToken!;
       } catch (fallbackErr: any) {
-        const errObj = fallbackErr.response?.data || err.response?.data || err.message;
-        logger.error(`[KopoKopo OAuth Error]: ${JSON.stringify(errObj)}`);
-        throw new Error(`Kopo Kopo Authentication failed: ${JSON.stringify(errObj)}`);
+        const errDetails =
+          fallbackErr.response?.data || err.response?.data || err.message;
+        logger.error(`[KopoKopo OAuth Error]: ${JSON.stringify(errDetails)}`);
+        throw new Error(`Kopo Kopo authentication failed: ${JSON.stringify(errDetails)}`);
       }
     }
   }
@@ -148,7 +154,7 @@ class KopoKopoService {
     };
 
     logger.info(`[KopoKopo STK Push] Sending KES ${params.amount} prompt to ${formattedPhone} (Till: ${this.tillNumber})`);
-    logger.info(`[KopoKopo Payload] Callback URL: ${this.callbackUrl}`);
+    logger.info(`[KopoKopo STK Payload] callback_url: ${this.callbackUrl}`);
 
     try {
       const response = await axios.post(`${this.baseUrl}/api/v1/incoming_payments`, payload, {
@@ -160,8 +166,9 @@ class KopoKopoService {
         },
       });
 
-      const locationHeader = response.headers['location'] || response.headers['Location'] || '';
-      logger.info(`[KopoKopo STK Success] HTTP ${response.status}. Location: ${locationHeader}`);
+      const locationHeader =
+        response.headers['location'] || response.headers['Location'] || '';
+      logger.info(`[KopoKopo STK Success] HTTP ${response.status}. Payment Location: ${locationHeader}`);
 
       return {
         success: true,
@@ -171,12 +178,13 @@ class KopoKopoService {
       };
     } catch (err: any) {
       const errData = err.response?.data;
-      logger.error(`[KopoKopo STK Error] Status ${err.response?.status}: ${errData ? JSON.stringify(errData) : err.message}`);
+      logger.error(
+        `[KopoKopo STK Error] Status ${err.response?.status}: ${errData ? JSON.stringify(errData) : err.message}`
+      );
 
       return {
         success: false,
         error: errData || err.message,
-        simulated: process.env.NODE_ENV === 'development',
       };
     }
   }
