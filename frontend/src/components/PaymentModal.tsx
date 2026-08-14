@@ -75,7 +75,7 @@ export default function PaymentModal() {
             </div>
             <h3 className="font-display font-extrabold text-xl">M-Pesa STK Push Payment</h3>
             <p className="text-xs text-white/80 mt-1">
-              Vote Fee: <strong className="text-[#F5C542] text-sm">KES 1</strong>
+              Vote Fee: <strong className="text-[#F5C542] text-sm">KES 10</strong>
             </p>
           </div>
 
@@ -109,7 +109,7 @@ export default function PaymentModal() {
                 <div>
                   <h4 className="font-display font-bold text-lg text-brand-ink">M-Pesa Payment Confirmed! 🎉</h4>
                   <p className="text-xs text-brand-ink/70 mt-0.5">
-                    Your payment of <strong>KES 1.00</strong> was received and your vote is officially counted.
+                    Your payment of <strong>KES 10.00</strong> was received and your vote is officially counted.
                   </p>
                 </div>
 
@@ -157,7 +157,7 @@ export default function PaymentModal() {
 
                   <div className="flex justify-between border-t border-black/5 pt-2">
                     <span className="text-brand-ink/55">Amount Paid:</span>
-                    <strong className="text-brand-ink font-bold text-sm">KES 1.00</strong>
+                    <strong className="text-brand-ink font-bold text-sm">KES 10.00</strong>
                   </div>
 
                   <div className="flex justify-between items-center">
@@ -195,7 +195,7 @@ export default function PaymentModal() {
                 <div>
                   <h4 className="font-display font-bold text-base text-brand-ink">Enter M-Pesa PIN on Your Phone</h4>
                   <p className="text-xs text-brand-ink/65 mt-1">
-                    An STK prompt for <strong>KES 1</strong> has been sent to <strong className="text-brand-ink">{payerPhone || phone}</strong>.
+                    An STK prompt for <strong>KES 10</strong> has been sent to <strong className="text-brand-ink">{payerPhone || phone}</strong>.
                   </p>
                 </div>
 
@@ -259,7 +259,7 @@ export default function PaymentModal() {
                 <div className="p-3 rounded-xl bg-black/[0.03] text-[11px] text-brand-ink/65 flex items-start gap-2 leading-relaxed">
                   <ShieldCheck size={16} className="text-brand-green shrink-0 mt-0.5" />
                   <span>
-                    When you click <strong>Proceed & Pay KES 1</strong>, an M-Pesa STK Push prompt will be sent directly to your phone. Enter your PIN to complete.
+                    When you click <strong>Proceed & Pay KES 10</strong>, an M-Pesa STK Push prompt will be sent directly to your phone. Enter your PIN to complete.
                   </span>
                 </div>
 
@@ -275,7 +275,7 @@ export default function PaymentModal() {
                     </>
                   ) : (
                     <>
-                      <span>Proceed & Pay KES 1</span>
+                      <span>Proceed & Pay KES 10</span>
                       <ArrowRight size={16} />
                     </>
                   )}

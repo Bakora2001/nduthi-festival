@@ -245,7 +245,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPaymentLoading(false);
             setPaymentStep('success');
             setPaymentMpesaRef(data.mpesaRef || 'M-PESA-STK-CONFIRMED');
-            setPaymentSuccessMessage(`🎉 Payment of KES 1 confirmed via M-Pesa! Vote cast for ${selectedNomineeForPayment.name}.`);
+            setPaymentSuccessMessage(`🎉 Payment of KES 10 confirmed via M-Pesa! Vote cast for ${selectedNomineeForPayment.name}.`);
             setToastType('success');
             setToastMessage(`🎉 Payment confirmed! (Ref: ${data.mpesaRef || 'M-Pesa'}). Vote counted for ${selectedNomineeForPayment.name}!`);
 

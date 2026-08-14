@@ -186,7 +186,7 @@ export default function LiveResults() {
                         onClick={() => castVote(n.id, n.name, n.categoryName)}
                         className="w-full py-2 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark transition-colors flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
                       >
-                        <VoteIcon size={12} /> Vote (KES 1)
+                        <VoteIcon size={12} /> Vote (KES 10)
                       </button>
                     </div>
                   </motion.div>

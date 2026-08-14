@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye, EyeOff, ArrowRight, CheckCircle2, Phone,
-  Lock, User, Award, MapPin, Bike, Sparkles
+  Lock, User, Award, MapPin, Bike, Sparkles, Loader2,
+  AlertCircle, Receipt, RefreshCw
 } from 'lucide-react';
 import { api } from '../lib/api';
 
 type Tab = 'login' | 'register';
 type AccountType = 'VOTER' | 'PARTICIPANT';
+type RegPaymentStep = 'idle' | 'initiating' | 'waiting_for_pin' | 'success' | 'failed';
 
 interface CategoryItem {
   id: string;
@@ -19,9 +21,35 @@ interface CategoryItem {
 const FEATURES = [
   'Vote for your favourite riders & motorcycles in Eldoret',
   'Track live results in real-time on the leaderboard',
-  'Fast M-Pesa STK Push payment (KES 1)',
-  'Instant voter confirmation & leaderboard tally',
+  'Fast M-Pesa STK Push payment (KES 10 per vote)',
+  'Instant voter confirmation & live leaderboard tally',
 ];
+
+export function getCategoryFee(category: CategoryItem | undefined): number {
+  if (!category) return 500;
+  const normName = category.name.toLowerCase().trim();
+  const normSlug = (category.slug || '').toLowerCase().trim();
+
+  // 1. 001 Kenya, Rider of the Year, Best Motorcycle dealer of the Year -> KES 1000
+  if (
+    normName.includes('001') || normSlug.includes('001') ||
+    normName.includes('rider of the year') || normSlug.includes('rider-of-the-year') ||
+    normName.includes('dealer') || normSlug.includes('dealer')
+  ) {
+    return 1000;
+  }
+
+  // 2. Best Rider group -> KES 5000
+  if (
+    normName.includes('group') || normSlug.includes('group') ||
+    normName.includes('club') || normSlug.includes('club')
+  ) {
+    return 5000;
+  }
+
+  // 3. The rest categories -> KES 500
+  return 500;
+}
 
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>('login');
@@ -51,6 +79,13 @@ export default function AuthPage() {
   const [bikeModel, setBikeModel] = useState('BM 150');
   const [registrationPlate, setRegistrationPlate] = useState('');
 
+  /* ── Participant Payment Modal State ── */
+  const [regPaymentStep, setRegPaymentStep] = useState<RegPaymentStep>('idle');
+  const [regPaymentId, setRegPaymentId] = useState<string | null>(null);
+  const [regPaymentFee, setRegPaymentFee] = useState<number>(500);
+  const [regPaymentError, setRegPaymentError] = useState<string | null>(null);
+  const [regPaymentMpesaRef, setRegPaymentMpesaRef] = useState<string | null>(null);
+
   useEffect(() => {
     // Fetch categories dynamically from backend
     api.get('/categories')
@@ -61,6 +96,9 @@ export default function AuthPage() {
       })
       .catch((err) => console.error('Failed to load categories:', err));
   }, []);
+
+  const selectedCategoryObj = categories.find((c) => c.id === categoryId);
+  const currentParticipantFee = getCategoryFee(selectedCategoryObj);
 
   /* ── Quick Validation ── */
   function validateRegister() {
@@ -131,9 +169,11 @@ export default function AuthPage() {
         const { accessToken, user } = res.data?.data || res.data;
         localStorage.setItem('nduthi_access_token', accessToken);
         localStorage.setItem('nduthi_user', JSON.stringify(user));
+        setLoading(false);
+        window.location.href = '/';
       } else {
-        // Register Participant in PostgreSQL DB
-        await api.post('/nominees/register', {
+        // ── PARTICIPANT REGISTRATION WITH M-PESA PAYMENT (STK PUSH) ──
+        const initRes = await api.post('/nominees/initiate-registration', {
           firstName: firstName || 'Participant',
           lastName,
           name: fullName.trim(),
@@ -148,19 +188,54 @@ export default function AuthPage() {
           imageUrl: '/cat_motorcycle.jpg',
         });
 
-        // Automatically log in
-        const loginRes = await api.post('/auth/login', {
-          phone,
-          password: regPwd,
-        });
+        const data = initRes.data?.data || initRes.data;
+        const paymentId = data.paymentId;
+        const feeAmount = data.amount || currentParticipantFee;
 
-        const { accessToken, user } = loginRes.data?.data || loginRes.data;
-        localStorage.setItem('nduthi_access_token', accessToken);
-        localStorage.setItem('nduthi_user', JSON.stringify(user));
+        setRegPaymentId(paymentId);
+        setRegPaymentFee(feeAmount);
+        setRegPaymentStep('waiting_for_pin');
+        setLoading(false);
+
+        // Start Polling for Payment Confirmation
+        let attempts = 0;
+        const maxAttempts = 40; // 40 * 2s = 80s window
+
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          try {
+            const checkRes = await api.get(`/nominees/check-registration/${paymentId}`);
+            const checkData = checkRes.data?.data || checkRes.data;
+
+            if (checkData.status === 'SUCCESS') {
+              clearInterval(pollInterval);
+              setRegPaymentStep('success');
+              setRegPaymentMpesaRef(checkData.mpesaRef || 'M-PESA-CONFIRMED');
+
+              if (checkData.accessToken) {
+                localStorage.setItem('nduthi_access_token', checkData.accessToken);
+              }
+              if (checkData.user) {
+                localStorage.setItem('nduthi_user', JSON.stringify(checkData.user));
+              }
+            } else if (checkData.status === 'FAILED') {
+              clearInterval(pollInterval);
+              setRegPaymentStep('failed');
+              setRegPaymentError(checkData.reason || 'Payment was cancelled or timed out before PIN was entered.');
+            } else if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setRegPaymentStep('failed');
+              setRegPaymentError('Payment confirmation timed out. If you paid, please sign in.');
+            }
+          } catch (err: any) {
+            if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setRegPaymentStep('failed');
+              setRegPaymentError('Failed to verify payment status. Please try again.');
+            }
+          }
+        }, 2000);
       }
-
-      setLoading(false);
-      window.location.href = accountType === 'PARTICIPANT' ? '/categories' : '/';
     } catch (err: any) {
       setLoading(false);
       const msg = err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please check your details and try again.';
@@ -347,7 +422,7 @@ export default function AuthPage() {
                   >
                     <div className="text-lg mb-1">🗳️</div>
                     <p className="font-bold text-xs text-brand-ink">Voter</p>
-                    <p className="text-[10px] text-brand-ink/50 leading-tight">Vote for riders</p>
+                    <p className="text-[10px] text-brand-ink/50 leading-tight">Vote for riders (KES 10/vote)</p>
                   </button>
 
                   <button
@@ -406,10 +481,15 @@ export default function AuthPage() {
 
               {/* Participant Additional Fields */}
               {accountType === 'PARTICIPANT' && (
-                <div className="space-y-3.5 p-3.5 rounded-2xl bg-brand-green/5 border border-brand-green/20">
-                  <p className="text-xs font-bold text-brand-green uppercase tracking-wide flex items-center gap-1.5">
-                    <Award size={14} /> Participant Award Category
-                  </p>
+                <div className="space-y-3.5 p-4 rounded-2xl bg-brand-green/5 border border-brand-green/20">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-bold text-brand-green uppercase tracking-wide flex items-center gap-1.5">
+                      <Award size={14} /> Participant Registration
+                    </p>
+                    <span className="bg-brand-green text-white text-[11px] font-black px-2.5 py-0.5 rounded-full shadow-sm">
+                      Fee: KES {currentParticipantFee.toLocaleString()}
+                    </span>
+                  </div>
 
                   <div>
                     <label className="block text-[11px] font-bold text-brand-ink/70 mb-1">
@@ -420,12 +500,20 @@ export default function AuthPage() {
                       onChange={(e) => setCategoryId(e.target.value)}
                       className="w-full border rounded-xl px-3 py-2 text-xs font-bold text-brand-ink bg-white border-brand-green/30 outline-none focus:border-brand-green"
                     >
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
+                      {categories.map((c) => {
+                        const fee = getCategoryFee(c);
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.name} — (KES {fee.toLocaleString()})
+                          </option>
+                        );
+                      })}
                     </select>
+                    <p className="text-[10px] text-brand-ink/50 mt-1">
+                      • 001 Kenya, Rider of the Year, Best Motorcycle dealer: <strong>KES 1,000</strong><br />
+                      • Best Rider group: <strong>KES 5,000</strong><br />
+                      • Other categories: <strong>KES 500</strong>
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -520,10 +608,10 @@ export default function AuthPage() {
               >
                 <span>
                   {loading
-                    ? 'Creating Account...'
+                    ? 'Processing...'
                     : accountType === 'VOTER'
                     ? 'Create Voter Account'
-                    : 'Register as Participant'}
+                    : `Register & Pay KES ${currentParticipantFee.toLocaleString()}`}
                 </span>
                 <ArrowRight size={16} />
               </button>
@@ -531,6 +619,143 @@ export default function AuthPage() {
           )}
         </div>
       </div>
+
+      {/* ────────────────── PARTICIPANT M-PESA STK PUSH MODAL ────────────────── */}
+      <AnimatePresence>
+        {regPaymentStep !== 'idle' && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-black/10"
+            >
+              {/* Modal Header */}
+              <div className="bg-[#076B29] p-6 text-white text-center relative overflow-hidden">
+                <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl">🏍️</span>
+                </div>
+                <h3 className="font-display font-extrabold text-xl">Participant Registration</h3>
+                <p className="text-xs text-white/80 mt-1">
+                  Category: <strong className="text-[#F5C542]">{selectedCategoryObj?.name || 'Awards'}</strong>
+                </p>
+                <p className="text-xs text-white/90 mt-0.5">
+                  Registration Fee: <strong className="text-[#F5C542] text-sm">KES {regPaymentFee.toLocaleString()}</strong>
+                </p>
+              </div>
+
+              <div className="p-6">
+                {/* 1. WAITING FOR M-PESA PIN */}
+                {regPaymentStep === 'waiting_for_pin' && (
+                  <div className="text-center py-6 space-y-4">
+                    <div className="relative w-16 h-16 mx-auto flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border-4 border-brand-green/20 border-t-brand-green animate-spin" />
+                      <span className="text-2xl">📲</span>
+                    </div>
+                    <div>
+                      <h4 className="font-display font-bold text-base text-brand-ink">Enter M-Pesa PIN on Your Phone</h4>
+                      <p className="text-xs text-brand-ink/65 mt-1">
+                        An STK Push prompt for <strong className="text-brand-ink font-bold">KES {regPaymentFee.toLocaleString()}</strong> has been sent to <strong className="text-brand-green font-bold">{phone}</strong>.
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-900 flex items-center justify-center gap-2 font-medium">
+                      <Loader2 size={15} className="animate-spin text-amber-700 shrink-0" />
+                      <span>Waiting for payment confirmation from M-Pesa...</span>
+                    </div>
+
+                    <p className="text-[11px] text-brand-ink/50 leading-relaxed">
+                      ⚠️ Note: Registration will be completed and your profile added to the awards immediately upon successful payment confirmation.
+                    </p>
+                  </div>
+                )}
+
+                {/* 2. SUCCESS CONFIRMATION */}
+                {regPaymentStep === 'success' && (
+                  <div className="text-center py-2 space-y-3.5 animate-in fade-in">
+                    <div className="w-14 h-14 rounded-full bg-brand-green/10 flex items-center justify-center mx-auto text-brand-green">
+                      <CheckCircle2 size={38} />
+                    </div>
+                    <div>
+                      <h4 className="font-display font-bold text-lg text-brand-ink">Registration Confirmed! 🎉</h4>
+                      <p className="text-xs text-brand-ink/70 mt-0.5">
+                        Your payment of <strong>KES {regPaymentFee.toLocaleString()}</strong> was received. You are now registered and ready to receive votes!
+                      </p>
+                    </div>
+
+                    <div className="bg-brand-ink/[0.03] border border-black/10 rounded-2xl p-4 text-left space-y-2 text-xs shadow-inner">
+                      <div className="flex items-center justify-between border-b border-black/5 pb-2">
+                        <span className="text-brand-ink/60 flex items-center gap-1.5 font-bold">
+                          <Receipt size={14} className="text-brand-green" /> M-Pesa Reference
+                        </span>
+                        <strong className="text-brand-green font-mono uppercase bg-brand-green/10 border border-brand-green/20 px-2 py-0.5 rounded-md text-xs">
+                          {regPaymentMpesaRef || 'M-PESA-CONFIRMED'}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-ink/55">Participant Name:</span>
+                        <strong className="text-brand-ink font-semibold">{fullName}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-ink/55">Category:</span>
+                        <strong className="text-brand-green font-bold">{selectedCategoryObj?.name}</strong>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-brand-ink/55">Amount Paid:</span>
+                        <strong className="text-brand-ink font-bold">KES {regPaymentFee.toLocaleString()}.00</strong>
+                      </div>
+                      <div className="flex justify-between items-center border-t border-black/5 pt-2">
+                        <span className="text-brand-ink/55">Status:</span>
+                        <span className="text-brand-green bg-brand-green/10 px-2 py-0.5 rounded text-[11px] font-extrabold flex items-center gap-1">
+                          <CheckCircle2 size={11} /> REGISTERED & ACTIVE
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => { window.location.href = '/categories'; }}
+                      className="w-full py-3.5 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark shadow-lg transition-all"
+                    >
+                      View Category & Start Receiving Votes →
+                    </button>
+                  </div>
+                )}
+
+                {/* 3. FAILED */}
+                {regPaymentStep === 'failed' && (
+                  <div className="text-center py-4 space-y-3 animate-in fade-in">
+                    <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-600">
+                      <AlertCircle size={32} />
+                    </div>
+                    <h4 className="font-display font-bold text-base text-brand-ink">Payment Incomplete</h4>
+                    <p className="text-xs text-red-700 bg-red-50 p-3 rounded-xl border border-red-200/50 leading-relaxed">
+                      {regPaymentError || 'The M-Pesa prompt was cancelled or timed out. Registration cannot be completed without confirmed payment.'}
+                    </p>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setRegPaymentStep('idle')}
+                        className="flex-1 py-3 rounded-xl bg-black/5 text-brand-ink text-xs font-bold hover:bg-black/10 transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => { setRegPaymentStep('idle'); handleRegister(e); }}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-[#076B29] text-white text-xs font-bold py-3 rounded-xl hover:bg-[#05521F] transition-all"
+                      >
+                        <RefreshCw size={13} /> Retry Payment
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
