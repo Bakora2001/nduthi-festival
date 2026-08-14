@@ -1,7 +1,13 @@
 import axios from 'axios';
 
+// In production (Vercel), VITE_API_URL points to the Render backend.
+// Locally the Vite proxy rewrites /api → http://localhost:5000 so we keep '/api'.
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api';
+
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -12,10 +18,3 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
-
-// Example calls (wire these into React Query hooks once the backend is running):
-//   api.get('/categories')
-//   api.get('/nominees/top?limit=5')
-//   api.get('/votes/leaderboard?limit=5')
-//   api.post('/payments/initiate', { method: 'MPESA', phone })
-//   api.post('/votes', { nomineeId, paymentId })

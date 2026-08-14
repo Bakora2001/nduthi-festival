@@ -9,18 +9,18 @@ const RANK_STYLES: Record<number, { bg: string; ring: string }> = {
   4: { bg: 'bg-brand-ink/30', ring: 'ring-black/5' },
 };
 
-const CATEGORY_LABELS = ['RIDER OF THE YEAR', 'BEST MODIFIED MOTORCYCLE', 'SAFEST RIDER', 'BEST RIDERS CLUB'];
-
 export default function LiveResults() {
   const { nominees, castVote } = useVote();
   const maxVotes = Math.max(...nominees.map((n) => n.votes), 1);
+
+  if (nominees.length === 0) return null;
 
   return (
     <section className="py-12 bg-white">
       <div className="container-nd">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <h2 className="font-display text-xl font-extrabold text-brand-ink tracking-tight">LIVE RESULTS</h2>
+            <h2 className="font-display text-xl font-extrabold text-brand-ink tracking-tight">LIVE LEADERBOARD</h2>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand-red bg-brand-red/10 px-3 py-1 rounded-full">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-red animate-pulse" />
               Updating in real-time
@@ -48,17 +48,17 @@ export default function LiveResults() {
                   {/* Header: Rank + Category Label */}
                   <div className="flex items-center gap-2 mb-4">
                     <span className={`w-6 h-6 rounded-full ${rankStyle.bg} ring-4 ${rankStyle.ring} flex items-center justify-center text-xs font-black text-white shrink-0`}>
-                      {nominee.rank}
+                      {nominee.rank || (i + 1)}
                     </span>
                     <p className="text-[10px] font-extrabold text-brand-ink/50 tracking-wider uppercase truncate">
-                      {CATEGORY_LABELS[i] ?? nominee.categoryName}
+                      {nominee.categoryName}
                     </p>
                   </div>
 
-                  {/* Nominee details: image left, text right */}
+                  {/* Nominee details */}
                   <div className="flex gap-4 items-center mb-4">
                     <img
-                      src={nominee.img}
+                      src={nominee.img || '/cat_rider_awards.jpg'}
                       alt={nominee.name}
                       className="w-[88px] h-[64px] object-cover rounded-xl shadow-sm border border-black/5 shrink-0"
                     />
@@ -79,10 +79,10 @@ export default function LiveResults() {
 
                 {/* Vote CTA Button */}
                 <button
-                  onClick={() => castVote(nominee.id, nominee.name, CATEGORY_LABELS[i])}
+                  onClick={() => castVote(nominee.id, nominee.name, nominee.categoryName)}
                   className="w-full py-2 px-3 rounded-xl bg-brand-green text-white text-xs font-bold shadow-card flex items-center justify-center gap-1.5 hover:bg-brand-green-dark transition-all duration-200 hover:scale-[1.02] active:scale-95"
                 >
-                  <Vote size={13} /> Vote Now
+                  <Vote size={13} /> Vote (KES 1)
                 </button>
               </motion.div>
             );

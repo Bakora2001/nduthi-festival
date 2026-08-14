@@ -1,25 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye, EyeOff, ArrowRight, CheckCircle2, Phone, Mail,
-  Lock, User, ChevronRight,
+  Lock, User, ChevronRight, Award, MapPin, Bike
 } from 'lucide-react';
+import { api } from '../lib/api';
 
 type Tab = 'login' | 'register';
+type AccountType = 'VOTER' | 'PARTICIPANT';
+
+interface CategoryItem {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
 
 const FEATURES = [
   'Vote for your favourite riders & motorcycles',
   'Track live results in real-time',
-  'Secure M-Pesa & card payment integration',
+  'Secure M-Pesa STK Push payment (KES 1)',
   'One vote per payment — fair & transparent',
 ];
 
 export default function AuthPage() {
   const [tab, setTab] = useState<Tab>('login');
+  const [accountType, setAccountType] = useState<AccountType>('VOTER');
   const [showPwd, setShowPwd] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
+
+  /* ── Categories state for participant registration ── */
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
 
   /* ── Login state ── */
   const [loginEmail, setLoginEmail] = useState('');
@@ -35,6 +49,25 @@ export default function AuthPage() {
   const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  /* ── Participant state ── */
+  const [categoryId, setCategoryId] = useState('');
+  const [county, setCounty] = useState('Nairobi');
+  const [stageName, setStageName] = useState('');
+  const [bikeMake, setBikeMake] = useState('TVS');
+  const [bikeModel, setBikeModel] = useState('HLX 150');
+  const [registrationPlate, setRegistrationPlate] = useState('');
+
+  useEffect(() => {
+    // Fetch categories dynamically from backend
+    api.get('/categories')
+      .then((res) => {
+        const cats = res.data?.data || res.data || [];
+        setCategories(cats);
+        if (cats.length > 0) setCategoryId(cats[0].id);
+      })
+      .catch((err) => console.error('Failed to load categories:', err));
+  }, []);
+
   /* ── Validation ── */
   function validateRegister() {
     const e: Record<string, string> = {};
@@ -43,39 +76,99 @@ export default function AuthPage() {
     if (!regEmail.includes('@')) e.regEmail = 'Valid email is required';
     if (phone && !/^(\+254|0)\d{9}$/.test(phone.replace(/\s/g, '')))
       e.phone = 'Enter a valid Kenyan phone number';
-    if (regPwd.length < 8) e.regPwd = 'Password must be at least 8 characters';
+    if (regPwd.length < 6) e.regPwd = 'Password must be at least 6 characters';
     if (regPwd !== confirmPwd) e.confirmPwd = 'Passwords do not match';
     if (!agreed) e.agreed = 'You must accept the terms';
+
+    if (accountType === 'PARTICIPANT') {
+      if (!categoryId) e.categoryId = 'Please select an award category';
+    }
+
     setErrors(e);
     return Object.keys(e).length === 0;
   }
 
-  /* ── Submit handlers ── */
+  /* ── Login Handler ── */
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    setApiError(null);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    localStorage.setItem(
-      'nduthi_user',
-      JSON.stringify({ email: loginEmail || 'voter@nduthiawards.co.ke', firstName: 'Brian', lastName: 'Mwangi' })
-    );
-    localStorage.setItem('nduthi_access_token', 'session_token_authenticated');
-    setLoading(false);
-    window.location.href = '/';
+
+    try {
+      const res = await api.post('/auth/login', {
+        email: loginEmail,
+        password: loginPwd,
+      });
+
+      const { accessToken, user } = res.data?.data || res.data;
+      localStorage.setItem('nduthi_access_token', accessToken);
+      localStorage.setItem('nduthi_user', JSON.stringify(user));
+
+      setLoading(false);
+      window.location.href = '/';
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to login. Please check your credentials.';
+      setApiError(msg);
+    }
   }
 
+  /* ── Register Handler ── */
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+    setApiError(null);
     if (!validateRegister()) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    localStorage.setItem(
-      'nduthi_user',
-      JSON.stringify({ email: regEmail, firstName, lastName, phone })
-    );
-    localStorage.setItem('nduthi_access_token', 'session_token_authenticated');
-    setLoading(false);
-    setSuccess(true);
+
+    try {
+      if (accountType === 'VOTER') {
+        const res = await api.post('/auth/register', {
+          firstName,
+          lastName,
+          email: regEmail,
+          phone,
+          password: regPwd,
+          roleName: 'REGISTERED_VOTER',
+        });
+
+        const { accessToken, user } = res.data?.data || res.data;
+        localStorage.setItem('nduthi_access_token', accessToken);
+        localStorage.setItem('nduthi_user', JSON.stringify(user));
+      } else {
+        // Register Participant in PostgreSQL DB
+        const res = await api.post('/nominees/register', {
+          firstName,
+          lastName,
+          email: regEmail,
+          phone,
+          password: regPwd,
+          categoryId,
+          county,
+          stageName,
+          make: bikeMake,
+          model: bikeModel,
+          registrationPlate,
+          imageUrl: '/cat_rider_awards.jpg',
+        });
+
+        // Also log in automatically
+        const loginRes = await api.post('/auth/login', {
+          email: regEmail,
+          password: regPwd,
+        });
+
+        const { accessToken, user } = loginRes.data?.data || loginRes.data;
+        localStorage.setItem('nduthi_access_token', accessToken);
+        localStorage.setItem('nduthi_user', JSON.stringify(user));
+      }
+
+      setLoading(false);
+      setSuccess(true);
+    } catch (err: any) {
+      setLoading(false);
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Registration failed. Please try again.';
+      setApiError(msg);
+    }
   }
 
   /* ── Password strength ── */
@@ -105,10 +198,10 @@ export default function AuthPage() {
             <h2 className="font-display font-extrabold text-3xl text-white leading-snug">
               Kenya's Premier<br />
               <span className="text-[#F5C542]">Motorcycle Awards</span><br />
-              Voting Platform
+              Voting & Registration
             </h2>
             <p className="mt-3 text-sm text-white/65 max-w-xs leading-relaxed">
-              Join thousands of riders, fans and partners celebrating excellence in the motorcycle community.
+              Register as a Voter or as a Participant to be voted for across Kenya's top motorcycle categories.
             </p>
 
             <ul className="mt-6 space-y-2.5">
@@ -119,16 +212,6 @@ export default function AuthPage() {
                 </li>
               ))}
             </ul>
-
-            {/* Stats row */}
-            <div className="mt-8 flex gap-6">
-              {[{ v: '24,560', l: 'Total Votes' }, { v: '5,432', l: 'Voters' }, { v: '87', l: 'Nominees' }].map((s) => (
-                <div key={s.l}>
-                  <p className="font-display text-xl font-black text-[#F5C542]">{s.v}</p>
-                  <p className="text-[11px] text-white/50">{s.l}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
           <p className="relative z-10 text-[11px] text-white/35">
@@ -144,13 +227,13 @@ export default function AuthPage() {
           <img src="/nduthi-logo.png" alt="Nduthi Festival" className="h-10 w-auto object-contain mx-auto" />
         </div>
 
-        <div className="w-full max-w-[420px]">
+        <div className="w-full max-w-[440px]">
           {/* Tab switcher */}
-          <div className="flex bg-brand-ink/[0.04] rounded-xl p-1 mb-7">
+          <div className="flex bg-brand-ink/[0.04] rounded-xl p-1 mb-6">
             {(['login', 'register'] as Tab[]).map((t) => (
               <button
                 key={t}
-                onClick={() => { setTab(t); setErrors({}); setSuccess(false); }}
+                onClick={() => { setTab(t); setErrors({}); setApiError(null); setSuccess(false); }}
                 className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all duration-200 capitalize ${
                   tab === t ? 'bg-white shadow-card text-brand-green' : 'text-brand-ink/60 hover:text-brand-ink'
                 }`}
@@ -159,6 +242,13 @@ export default function AuthPage() {
               </button>
             ))}
           </div>
+
+          {apiError && (
+            <div className="mb-4 p-3 rounded-xl bg-brand-red/10 border border-brand-red/20 text-brand-red text-xs font-semibold flex items-center gap-2">
+              <span>⚠️</span>
+              <p>{apiError}</p>
+            </div>
+          )}
 
           <AnimatePresence mode="wait">
             {/* ── LOGIN FORM ── */}
@@ -192,40 +282,18 @@ export default function AuthPage() {
                     />
                   </Field>
 
-                  <div className="flex items-center justify-between text-xs">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input type="checkbox" className="accent-brand-green w-3.5 h-3.5" />
-                      <span className="text-brand-ink/60">Remember me</span>
-                    </label>
-                    <a href="/forgot-password" className="font-semibold text-brand-green hover:underline">Forgot password?</a>
-                  </div>
-
                   <button type="submit" disabled={loading}
                     className="w-full flex items-center justify-center gap-2 bg-brand-green text-white text-sm font-bold py-3 rounded-xl shadow-card-lg hover:bg-[#076B29] transition-all duration-200 hover:scale-[1.01] disabled:opacity-70">
                     {loading ? <Spinner /> : <><span>Sign In</span><ArrowRight size={15} /></>}
                   </button>
 
-                  <div className="relative flex items-center gap-3 my-2">
-                    <div className="flex-1 h-px bg-black/8" />
-                    <span className="text-[11px] text-brand-ink/40 font-semibold">OR</span>
-                    <div className="flex-1 h-px bg-black/8" />
-                  </div>
-
-                  <p className="text-center text-xs text-brand-ink/55">
+                  <p className="text-center text-xs text-brand-ink/55 pt-2">
                     Don't have an account?{' '}
                     <button type="button" onClick={() => setTab('register')} className="font-bold text-brand-green hover:underline">
                       Create one for free →
                     </button>
                   </p>
                 </form>
-
-                {/* Info banner */}
-                <div className="mt-6 rounded-xl bg-brand-green/5 border border-brand-green/15 px-4 py-3 flex items-start gap-2.5">
-                  <span className="text-brand-green text-base shrink-0 mt-0.5">ℹ️</span>
-                  <p className="text-xs text-brand-ink/70 leading-relaxed">
-                    <strong className="text-brand-ink">Browsing is free.</strong> You only need to log in when you're ready to cast your vote after completing payment.
-                  </p>
-                </div>
               </motion.div>
             )}
 
@@ -233,46 +301,151 @@ export default function AuthPage() {
             {tab === 'register' && !success && (
               <motion.div key="register" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} transition={{ duration: 0.2 }}>
                 <h1 className="font-display text-2xl font-extrabold text-brand-ink">Join Nduthi Festival 🏍️</h1>
-                <p className="text-sm text-brand-ink/55 mt-1">Create your account to vote and participate in the awards.</p>
+                <p className="text-sm text-brand-ink/55 mt-1">Choose how you want to join the festival below.</p>
 
-                <form onSubmit={handleRegister} className="mt-6 space-y-3.5">
+                {/* Account Type Selector */}
+                <div className="grid grid-cols-2 gap-2.5 my-4">
+                  <button
+                    type="button"
+                    onClick={() => setAccountType('VOTER')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      accountType === 'VOTER'
+                        ? 'border-brand-green bg-brand-green/5 text-brand-green shadow-sm'
+                        : 'border-black/10 text-brand-ink/70 hover:border-black/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <span>🗳️ Voter</span>
+                    </div>
+                    <p className="text-[11px] text-brand-ink/50 mt-1">I want to vote for participants</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAccountType('PARTICIPANT')}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      accountType === 'PARTICIPANT'
+                        ? 'border-brand-green bg-brand-green/5 text-brand-green shadow-sm'
+                        : 'border-black/10 text-brand-ink/70 hover:border-black/20'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <span>🏍️ Participant / Rider</span>
+                    </div>
+                    <p className="text-[11px] text-brand-ink/50 mt-1">I want to be voted for in awards</p>
+                  </button>
+                </div>
+
+                <form onSubmit={handleRegister} className="space-y-3">
                   {/* Name row */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Field label="First Name" icon={<User size={15} />} error={errors.firstName}>
-                        <input id="firstName" type="text" autoComplete="given-name"
-                          value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                          placeholder="John"
-                          className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
-                        />
-                      </Field>
-                    </div>
-                    <div>
-                      <Field label="Last Name" icon={<User size={15} />} error={errors.lastName}>
-                        <input id="lastName" type="text" autoComplete="family-name"
-                          value={lastName} onChange={(e) => setLastName(e.target.value)}
-                          placeholder="Mwangi"
-                          className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
-                        />
-                      </Field>
-                    </div>
+                    <Field label="First Name" icon={<User size={15} />} error={errors.firstName}>
+                      <input id="firstName" type="text" required
+                        value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                        placeholder="John"
+                        className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
+                      />
+                    </Field>
+                    <Field label="Last Name" icon={<User size={15} />} error={errors.lastName}>
+                      <input id="lastName" type="text" required
+                        value={lastName} onChange={(e) => setLastName(e.target.value)}
+                        placeholder="Mwangi"
+                        className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
+                      />
+                    </Field>
                   </div>
 
                   <Field label="Email Address" icon={<Mail size={15} />} error={errors.regEmail}>
-                    <input id="regEmail" type="email" autoComplete="email"
+                    <input id="regEmail" type="email" required
                       value={regEmail} onChange={(e) => setRegEmail(e.target.value)}
                       placeholder="you@example.com"
                       className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
                     />
                   </Field>
 
-                  <Field label="Phone Number (optional)" icon={<Phone size={15} />} error={errors.phone}>
-                    <input id="phone" type="tel" autoComplete="tel"
+                  <Field label="Phone Number (M-Pesa)" icon={<Phone size={15} />} error={errors.phone}>
+                    <input id="phone" type="tel" required
                       value={phone} onChange={(e) => setPhone(e.target.value)}
-                      placeholder="+254 700 000 000"
+                      placeholder="0712 345 678"
                       className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
                     />
                   </Field>
+
+                  {/* ── PARTICIPANT EXTRA FIELDS ── */}
+                  {accountType === 'PARTICIPANT' && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3 pt-1 border-t border-black/5">
+                      <div>
+                        <label className="block text-xs font-bold text-brand-ink/60 mb-1">Award Category *</label>
+                        <div className="flex items-center gap-2 border rounded-xl px-3 py-2 bg-brand-ink/[0.02] border-black/10">
+                          <Award size={15} className="text-brand-ink/35 shrink-0" />
+                          <select
+                            value={categoryId}
+                            onChange={(e) => setCategoryId(e.target.value)}
+                            className="w-full bg-transparent text-xs font-semibold text-brand-ink outline-none"
+                          >
+                            {categories.map((cat) => (
+                              <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {errors.categoryId && <p className="text-[11px] text-brand-red mt-1">{errors.categoryId}</p>}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="County / Region" icon={<MapPin size={15} />}>
+                          <input
+                            type="text"
+                            value={county}
+                            onChange={(e) => setCounty(e.target.value)}
+                            placeholder="Nairobi, Nakuru..."
+                            className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
+                          />
+                        </Field>
+                        <Field label="Stage / Club Name" icon={<Bike size={15} />}>
+                          <input
+                            type="text"
+                            value={stageName}
+                            onChange={(e) => setStageName(e.target.value)}
+                            placeholder="Westlands Stage..."
+                            className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
+                          />
+                        </Field>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-bold text-brand-ink/60 mb-1">Make</label>
+                          <input
+                            type="text"
+                            value={bikeMake}
+                            onChange={(e) => setBikeMake(e.target.value)}
+                            placeholder="TVS / Honda"
+                            className="w-full border rounded-lg px-2.5 py-1.5 text-xs text-brand-ink outline-none border-black/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-brand-ink/60 mb-1">Model</label>
+                          <input
+                            type="text"
+                            value={bikeModel}
+                            onChange={(e) => setBikeModel(e.target.value)}
+                            placeholder="HLX 150"
+                            className="w-full border rounded-lg px-2.5 py-1.5 text-xs text-brand-ink outline-none border-black/10"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-bold text-brand-ink/60 mb-1">Plate Number</label>
+                          <input
+                            type="text"
+                            value={registrationPlate}
+                            onChange={(e) => setRegistrationPlate(e.target.value)}
+                            placeholder="KMG 458X"
+                            className="w-full border rounded-lg px-2.5 py-1.5 text-xs text-brand-ink outline-none border-black/10"
+                          />
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   <Field label="Password" icon={<Lock size={15} />} error={errors.regPwd}
                     right={
@@ -281,9 +454,9 @@ export default function AuthPage() {
                       </button>
                     }
                   >
-                    <input id="regPwd" type={showPwd ? 'text' : 'password'} autoComplete="new-password"
+                    <input id="regPwd" type={showPwd ? 'text' : 'password'} required
                       value={regPwd} onChange={(e) => setRegPwd(e.target.value)}
-                      placeholder="Min. 8 characters"
+                      placeholder="Min. 6 characters"
                       className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
                     />
                   </Field>
@@ -309,53 +482,47 @@ export default function AuthPage() {
                       </button>
                     }
                   >
-                    <input id="confirmPwd" type={showConfirm ? 'text' : 'password'} autoComplete="new-password"
+                    <input id="confirmPwd" type={showConfirm ? 'text' : 'password'} required
                       value={confirmPwd} onChange={(e) => setConfirmPwd(e.target.value)}
-                      placeholder="Repeat your password"
+                      placeholder="Repeat password"
                       className="w-full bg-transparent text-sm text-brand-ink outline-none placeholder:text-brand-ink/35"
                     />
                   </Field>
 
-                  <label className="flex items-start gap-2.5 cursor-pointer">
+                  <label className="flex items-start gap-2 cursor-pointer pt-1">
                     <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                       className="accent-brand-green w-3.5 h-3.5 mt-0.5 shrink-0" />
                     <span className="text-[11px] text-brand-ink/60 leading-snug">
-                      I agree to the{' '}
-                      <a href="/terms" className="font-semibold text-brand-green hover:underline">Terms & Conditions</a>
-                      {' '}and{' '}
-                      <a href="/privacy" className="font-semibold text-brand-green hover:underline">Privacy Policy</a>
+                      I agree to the Terms & Privacy Policy
                     </span>
                   </label>
-                  {errors.agreed && <p className="text-[11px] text-brand-red -mt-2">{errors.agreed}</p>}
+                  {errors.agreed && <p className="text-[11px] text-brand-red">{errors.agreed}</p>}
 
                   <button type="submit" disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 bg-brand-green text-white text-sm font-bold py-3 rounded-xl shadow-card-lg hover:bg-[#076B29] transition-all duration-200 hover:scale-[1.01] disabled:opacity-70">
-                    {loading ? <Spinner /> : <><span>Create Account</span><ArrowRight size={15} /></>}
+                    className="w-full flex items-center justify-center gap-2 bg-brand-green text-white text-sm font-bold py-3 rounded-xl shadow-card-lg hover:bg-[#076B29] transition-all duration-200 hover:scale-[1.01] disabled:opacity-70 mt-2">
+                    {loading ? <Spinner /> : <><span>{accountType === 'PARTICIPANT' ? 'Register as Participant' : 'Create Voter Account'}</span><ArrowRight size={15} /></>}
                   </button>
-
-                  <p className="text-center text-xs text-brand-ink/55">
-                    Already have an account?{' '}
-                    <button type="button" onClick={() => setTab('login')} className="font-bold text-brand-green hover:underline">
-                      Sign in →
-                    </button>
-                  </p>
                 </form>
               </motion.div>
             )}
 
             {/* ── SUCCESS STATE ── */}
             {tab === 'register' && success && (
-              <motion.div key="success" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-8">
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-6">
                 <div className="w-16 h-16 rounded-full bg-brand-green/10 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 size={32} className="text-brand-green" />
                 </div>
-                <h2 className="font-display text-xl font-extrabold text-brand-ink">Account Created! 🎉</h2>
+                <h2 className="font-display text-xl font-extrabold text-brand-ink">
+                  {accountType === 'PARTICIPANT' ? 'Participant Registered! 🎉' : 'Account Created! 🎉'}
+                </h2>
                 <p className="text-sm text-brand-ink/60 mt-2 max-w-xs mx-auto leading-relaxed">
-                  Welcome to Nduthi Festival! Check your email to verify your account, then you're ready to vote.
+                  {accountType === 'PARTICIPANT'
+                    ? 'Your name and details are now live on the voting pages! People can vote for you immediately.'
+                    : 'Welcome to Nduthi Festival! You are logged in and ready to vote.'}
                 </p>
-                <a href="/"
+                <a href="/categories"
                   className="mt-6 inline-flex items-center gap-2 bg-brand-green text-white text-sm font-bold px-6 py-2.5 rounded-xl hover:bg-[#076B29] transition-colors">
-                  Go to Homepage <ChevronRight size={15} />
+                  Go to Voting Pages <ChevronRight size={15} />
                 </a>
               </motion.div>
             )}
@@ -366,15 +533,15 @@ export default function AuthPage() {
   );
 }
 
-/* ── Field wrapper ─────────────────────────────── */
+/* ── Field wrapper ── */
 function Field({ label, icon, right, error, children }: {
   label: string; icon: React.ReactNode; right?: React.ReactNode;
   error?: string; children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="block text-xs font-bold text-brand-ink/60 mb-1.5">{label}</label>
-      <div className={`flex items-center gap-2.5 border rounded-xl px-3.5 py-2.5 bg-brand-ink/[0.02] transition-colors focus-within:border-brand-green focus-within:bg-brand-green/[0.02] ${error ? 'border-brand-red' : 'border-black/10'}`}>
+      <label className="block text-xs font-bold text-brand-ink/60 mb-1">{label}</label>
+      <div className={`flex items-center gap-2.5 border rounded-xl px-3 py-2 bg-brand-ink/[0.02] transition-colors focus-within:border-brand-green ${error ? 'border-brand-red' : 'border-black/10'}`}>
         <span className="text-brand-ink/35 shrink-0">{icon}</span>
         {children}
         {right && <span className="shrink-0">{right}</span>}

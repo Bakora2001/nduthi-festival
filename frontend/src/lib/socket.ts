@@ -10,13 +10,14 @@ export const SOCKET_EVENTS = {
 } as const;
 
 /**
- * Lazily connects to the backend Socket.IO server. Call this once (e.g. in a
- * top-level layout effect) and subscribe to SOCKET_EVENTS.VOTE_CAST to update
- * leaderboards/vote counts live, matching the TID's WebSocket requirement.
+ * Lazily connects to the backend Socket.IO server.
+ * In production, VITE_API_URL points to the Render backend (e.g. https://nduthi-festival-backend.onrender.com).
+ * Locally, it connects to '/' which Vite proxy handles.
  */
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io('/', { path: '/socket.io', autoConnect: true });
+    const serverUrl = import.meta.env.VITE_API_URL || '/';
+    socket = io(serverUrl, { path: '/socket.io', autoConnect: true });
   }
   return socket;
 }

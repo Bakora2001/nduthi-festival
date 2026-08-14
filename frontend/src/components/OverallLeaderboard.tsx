@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { Trophy } from 'lucide-react';
-import { leaderboard } from '../data/mockData';
+import { useVote } from '../context/VoteContext';
 
 const TABS = ['Today', 'This Week', 'All Time'];
 
 const RANK_COLORS: Record<number, string> = {
-  1: 'bg-brand-gold text-brand-ink',
-  2: 'bg-slate-300 text-brand-ink',
-  3: 'bg-amber-700 text-white',
+  1: 'bg-brand-gold text-brand-ink font-black',
+  2: 'bg-slate-300 text-brand-ink font-bold',
+  3: 'bg-amber-700 text-white font-bold',
 };
 
 export default function OverallLeaderboard() {
-  const [activeTab, setActiveTab] = useState('Today');
+  const [activeTab, setActiveTab] = useState('All Time');
+  const { nominees } = useVote();
+
+  // Top 5 nominees sorted by votes
+  const topNominees = [...nominees].slice(0, 5);
 
   return (
     <div className="bg-white rounded-2xl border border-black/5 shadow-card p-5">
@@ -34,25 +38,36 @@ export default function OverallLeaderboard() {
         ))}
       </div>
 
-      <ul className="space-y-3">
-        {leaderboard.map((entry) => (
-          <li key={entry.rank} className="flex items-center gap-3">
-            <span
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
-                RANK_COLORS[entry.rank] ?? 'bg-black/5 text-brand-ink/60'
-              }`}
-            >
-              {entry.rank}
-            </span>
-            <span className="w-8 h-8 rounded-full bg-brand-green-light shrink-0" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-brand-ink truncate">{entry.name}</p>
-              <p className="text-xs text-brand-ink/45 truncate">{entry.category}</p>
-            </div>
-            <span className="text-sm font-bold text-brand-green shrink-0">{entry.votes.toLocaleString()}</span>
-          </li>
-        ))}
-      </ul>
+      {topNominees.length === 0 ? (
+        <p className="text-xs text-brand-ink/50 text-center py-4">No participants registered yet.</p>
+      ) : (
+        <ul className="space-y-3">
+          {topNominees.map((entry, idx) => {
+            const rank = idx + 1;
+            return (
+              <li key={entry.id} className="flex items-center gap-3">
+                <span
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] shrink-0 ${
+                    RANK_COLORS[rank] ?? 'bg-black/5 text-brand-ink/60 font-semibold'
+                  }`}
+                >
+                  {rank}
+                </span>
+                <img
+                  src={entry.img || '/cat_rider_awards.jpg'}
+                  alt={entry.name}
+                  className="w-8 h-8 rounded-full object-cover border shrink-0"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-brand-ink truncate">{entry.name}</p>
+                  <p className="text-xs text-brand-ink/45 truncate">{entry.categoryName}</p>
+                </div>
+                <span className="text-sm font-bold text-brand-green shrink-0">{entry.votes.toLocaleString()}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       <a
         href="/live-results"
