@@ -171,9 +171,25 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex">
       {/* Left panel - Branding and Features */}
-      <div className="hidden lg:flex lg:w-5/12 bg-[#0C1A10] text-white p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#076B29_1px,transparent_1px)] [background-size:16px_16px]" />
-        
+      <div className="hidden lg:flex lg:w-5/12 relative bg-[#14231A] overflow-hidden flex-col justify-between p-12 text-white">
+        {/* Background flag banner image */}
+        <img
+          src="/hero_flag_bg.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover opacity-25 pointer-events-none select-none"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#14231A]/95 via-[#14231A]/80 to-transparent pointer-events-none" />
+
+        {/* Hero Motorcycle Accent Graphic */}
+        <img
+          src="/hero_motorcycle.jpg"
+          alt=""
+          aria-hidden="true"
+          className="absolute -bottom-6 -right-6 w-[85%] object-contain pointer-events-none select-none"
+          style={{ mixBlendMode: 'luminosity', opacity: 0.35 }}
+        />
+
         <div className="relative z-10">
           <a href="/" className="inline-block mb-10">
             <img src="/nduthi-logo.png" alt="Nduthi Festival & Awards Kenya" className="h-12 w-auto object-contain" />
@@ -198,14 +214,14 @@ export default function AuthPage() {
                 <div className="w-6 h-6 rounded-full bg-brand-green/20 text-brand-green flex items-center justify-center shrink-0">
                   <CheckCircle2 size={14} />
                 </div>
-                <span className="text-xs text-white/80 font-medium">{f}</span>
+                <span className="text-xs text-white/85 font-medium">{f}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="relative z-10 border-t border-white/10 pt-6">
-          <p className="text-[11px] text-white/40">
+          <p className="text-[11px] text-white/45 font-medium">
             © {new Date().getFullYear()} Nduthi Festival & Awards Kenya. Eldoret Edition.
           </p>
         </div>

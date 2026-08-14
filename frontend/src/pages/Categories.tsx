@@ -202,22 +202,10 @@ export default function Categories() {
 
                         <button
                           onClick={() => castVote(nom.id, nom.name, nom.categoryName)}
-                          disabled={hasVoted}
-                          className={`inline-flex items-center gap-1.5 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${
-                            hasVoted ? 'bg-gray-400 cursor-not-allowed' : btnColor
-                          }`}
+                          className={`inline-flex items-center gap-1.5 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-95 ${btnColor}`}
                         >
-                          {hasVoted ? (
-                            <>
-                              <CheckCircle2 size={13} />
-                              <span>Voted</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>Vote (KES 1)</span>
-                              <ArrowRight size={13} />
-                            </>
-                          )}
+                          <span>Vote (KES 1)</span>
+                          <ArrowRight size={13} />
                         </button>
                       </div>
                     </div>
