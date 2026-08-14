@@ -38,7 +38,6 @@ class KopoKopoService {
     this.tillNumber = env.kopokopo.tillNumber;
     this.callbackUrl = env.kopokopo.callbackUrl;
 
-    // Safety: Kopo Kopo production REQUIRES HTTPS callback
     if (!this.callbackUrl.startsWith('https://')) {
       logger.warn(`[KopoKopo] Callback URL must be HTTPS for production. Got: ${this.callbackUrl}`);
       this.callbackUrl = 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback';
@@ -186,6 +185,42 @@ class KopoKopoService {
         success: false,
         error: errData || err.message,
       };
+    }
+  }
+
+  /**
+   * Check live status of an incoming payment using the Kopo Kopo resource Location URL
+   */
+  public async checkPaymentStatus(locationUrl: string) {
+    if (!locationUrl || !locationUrl.startsWith('http')) {
+      return { status: 'Pending' };
+    }
+
+    try {
+      const accessToken = await this.getAccessToken();
+      logger.info(`[KopoKopo Query] Checking status at ${locationUrl}`);
+      const response = await axios.get(locationUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: 'application/json',
+          'x-api-key': this.apiKey,
+        },
+      });
+
+      const attributes = response.data?.data?.attributes || response.data?.attributes || {};
+      const status = String(attributes.status || attributes.event?.resource?.status || 'Pending');
+      const mpesaRef = attributes.event?.resource?.reference || attributes.id;
+
+      logger.info(`[KopoKopo Query Status]: ${status} (Ref: ${mpesaRef || 'N/A'})`);
+
+      return {
+        status, // 'Pending', 'Success', 'Failed'
+        mpesaRef,
+        data: response.data,
+      };
+    } catch (err: any) {
+      logger.error(`[KopoKopo Query Error]: ${err.response?.data ? JSON.stringify(err.response.data) : err.message}`);
+      return { status: 'Pending', error: err.message };
     }
   }
 }

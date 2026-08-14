@@ -5,7 +5,7 @@ import { broadcast, SOCKET_EVENTS } from '../../sockets';
 import { emailService } from '../../utils/email';
 import { logger } from '../../utils/logger';
 
-const VOTE_PRICE_KES = 10; // Exactly KES 10 per vote as specified
+const VOTE_PRICE_KES = 1; // KES 1 per vote for testing
 
 interface InitiatePaymentInput {
   userId: string;
@@ -16,7 +16,7 @@ interface InitiatePaymentInput {
 
 export const paymentsService = {
   /**
-   * Initiate M-Pesa STK Push payment for voting (KES 10)
+   * Initiate M-Pesa STK Push payment for voting (KES 1)
    */
   async initiate(input: InitiatePaymentInput) {
     const user = await prisma.user.findUnique({ where: { id: input.userId } });
@@ -47,6 +47,14 @@ export const paymentsService = {
       voterEmail: user.email,
     });
 
+    // Save location URL in providerRef for live polling
+    if (stkResult.location) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { providerRef: stkResult.location },
+      });
+    }
+
     return {
       paymentId: payment.id,
       nomineeId: nominee.id,
@@ -56,6 +64,143 @@ export const paymentsService = {
       status: 'PENDING',
       provider: stkResult,
     };
+  },
+
+  /**
+   * Check real-time payment status (polled by frontend or webhook)
+   */
+  async checkStatus(params: { paymentId: string; nomineeId?: string; userId: string }) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: params.paymentId },
+      include: { user: true },
+    });
+
+    if (!payment) throw new AppError('Payment not found', 404);
+
+    // 1. If already SUCCESS, return status
+    if (payment.status === 'SUCCESS') {
+      return {
+        status: 'SUCCESS',
+        paymentId: payment.id,
+        amount: Number(payment.amount),
+        mpesaRef: payment.providerRef && !payment.providerRef.startsWith('http') ? payment.providerRef : 'M-PESA-CONFIRMED',
+        completed: true,
+      };
+    }
+
+    // 2. If already FAILED, return status
+    if (payment.status === 'FAILED') {
+      return {
+        status: 'FAILED',
+        paymentId: payment.id,
+        reason: 'Payment was cancelled or failed.',
+        completed: true,
+      };
+    }
+
+    // 3. If PENDING and we have a Kopo Kopo location URL, query live status
+    if (payment.status === 'PENDING' && payment.providerRef && payment.providerRef.startsWith('http')) {
+      const k2Status = await kopokopoService.checkPaymentStatus(payment.providerRef);
+      const rawStatus = String(k2Status.status).toLowerCase();
+
+      if (rawStatus === 'success') {
+        // Payment is confirmed!
+        const updatedPayment = await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'SUCCESS', providerRef: k2Status.mpesaRef || 'M-PESA-CONFIRMED' },
+          include: { user: true },
+        });
+
+        if (params.nomineeId) {
+          await this.fulfillVoteAndNotify({
+            paymentId: updatedPayment.id,
+            userId: updatedPayment.userId,
+            nomineeId: params.nomineeId,
+            user: updatedPayment.user,
+            amount: Number(updatedPayment.amount),
+            mpesaRef: k2Status.mpesaRef || 'KopoKopo-STK',
+          });
+        }
+
+        return {
+          status: 'SUCCESS',
+          paymentId: payment.id,
+          mpesaRef: k2Status.mpesaRef || 'M-PESA-CONFIRMED',
+          amount: Number(payment.amount),
+          completed: true,
+        };
+      } else if (rawStatus === 'failed' || rawStatus === 'rejected') {
+        // Payment failed or cancelled by user
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED' },
+        });
+
+        let nomineeName = 'Nominee';
+        let categoryName = 'Awards Category';
+        if (params.nomineeId) {
+          const nom = await prisma.nominee.findUnique({
+            where: { id: params.nomineeId },
+            include: { category: true },
+          });
+          if (nom) {
+            nomineeName = nom.name;
+            categoryName = nom.category.name;
+          }
+        }
+
+        // Send payment failed email
+        emailService.sendPaymentFailedNotification({
+          toEmail: payment.user.email,
+          voterName: `${payment.user.firstName} ${payment.user.lastName}`,
+          nomineeName,
+          categoryName,
+          amount: Number(payment.amount),
+          reason: 'M-Pesa payment prompt was cancelled or timed out before PIN was entered.',
+        });
+
+        return {
+          status: 'FAILED',
+          paymentId: payment.id,
+          reason: 'M-Pesa transaction was cancelled or timed out.',
+          completed: true,
+        };
+      }
+    }
+
+    return {
+      status: 'PENDING',
+      paymentId: payment.id,
+      completed: false,
+    };
+  },
+
+  /**
+   * Complete payment verification and vote recording directly
+   */
+  async confirmAndCastVote(params: { paymentId: string; nomineeId: string; userId: string; mpesaRef?: string }) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: params.paymentId },
+      include: { user: true },
+    });
+
+    if (!payment) throw new AppError('Payment not found', 404);
+    if (payment.userId !== params.userId) throw new AppError('Payment user mismatch', 403);
+
+    const updatedPayment = await prisma.payment.update({
+      where: { id: params.paymentId },
+      data: { status: 'SUCCESS', providerRef: params.mpesaRef || 'M-PESA-STK-SUCCESS' },
+      include: { user: true },
+    });
+
+    return this.fulfillVoteAndNotify({
+      paymentId: updatedPayment.id,
+      userId: updatedPayment.userId,
+      nomineeId: params.nomineeId,
+      user: updatedPayment.user,
+      amount: Number(updatedPayment.amount),
+      mpesaRef: params.mpesaRef || 'M-PESA-STK-SUCCESS',
+    });
   },
 
   /**
@@ -105,6 +250,28 @@ export const paymentsService = {
           amount: Number(payment.amount),
           mpesaRef: attributes.event?.resource?.reference || attributes.id || 'KopoKopo-STK',
         });
+      } else if (!isSuccess) {
+        let nomineeName = 'Nominee';
+        let categoryName = 'Awards Category';
+        if (nomineeId) {
+          const nom = await prisma.nominee.findUnique({
+            where: { id: nomineeId },
+            include: { category: true },
+          });
+          if (nom) {
+            nomineeName = nom.name;
+            categoryName = nom.category.name;
+          }
+        }
+
+        emailService.sendPaymentFailedNotification({
+          toEmail: payment.user.email,
+          voterName: `${payment.user.firstName} ${payment.user.lastName}`,
+          nomineeName,
+          categoryName,
+          amount: Number(payment.amount),
+          reason: attributes.event?.resource?.error_message || 'M-Pesa payment prompt was cancelled or timed out.',
+        });
       }
 
       return { status: paymentStatus, paymentId };
@@ -112,35 +279,6 @@ export const paymentsService = {
       logger.error(`[KopoKopo Callback Error]: ${err.message}`);
       throw err;
     }
-  },
-
-  /**
-   * Complete payment verification and vote recording directly
-   */
-  async confirmAndCastVote(params: { paymentId: string; nomineeId: string; userId: string; mpesaRef?: string }) {
-    const payment = await prisma.payment.findUnique({
-      where: { id: params.paymentId },
-      include: { user: true },
-    });
-
-    if (!payment) throw new AppError('Payment not found', 404);
-    if (payment.userId !== params.userId) throw new AppError('Payment user mismatch', 403);
-
-    // Update payment to SUCCESS if pending
-    const updatedPayment = await prisma.payment.update({
-      where: { id: params.paymentId },
-      data: { status: 'SUCCESS', providerRef: params.mpesaRef || 'M-PESA-STK-SUCCESS' },
-      include: { user: true },
-    });
-
-    return this.fulfillVoteAndNotify({
-      paymentId: updatedPayment.id,
-      userId: updatedPayment.userId,
-      nomineeId: params.nomineeId,
-      user: updatedPayment.user,
-      amount: Number(updatedPayment.amount),
-      mpesaRef: params.mpesaRef || 'M-PESA-STK-SUCCESS',
-    });
   },
 
   /**

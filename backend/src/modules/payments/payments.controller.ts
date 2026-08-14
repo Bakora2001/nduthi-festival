@@ -15,14 +15,18 @@ export const paymentsController = {
     return ok(res, result, 'Payment initiated successfully');
   }),
 
+  checkStatus: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const result = await paymentsService.checkStatus({
+      paymentId: req.params.id,
+      nomineeId: req.query.nomineeId as string,
+      userId: req.user!.userId,
+    });
+    return ok(res, result);
+  }),
+
   getStatus: asyncHandler(async (req: Request, res: Response) => {
     const payment = await paymentsService.getById(req.params.id);
     return ok(res, payment);
-  }),
-
-  kopokopoCallback: asyncHandler(async (req: Request, res: Response) => {
-    const result = await paymentsService.handleKopokopoCallback(req.body);
-    return res.status(200).json({ status: 'success', data: result });
   }),
 
   confirmVote: asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -33,5 +37,10 @@ export const paymentsController = {
       mpesaRef: req.body.mpesaRef,
     });
     return ok(res, result, 'Vote confirmed successfully!');
+  }),
+
+  kopokopoCallback: asyncHandler(async (req: Request, res: Response) => {
+    const result = await paymentsService.handleKopokopoCallback(req.body);
+    return res.status(200).json({ status: 'success', data: result });
   }),
 };
