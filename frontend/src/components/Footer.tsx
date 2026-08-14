@@ -3,7 +3,7 @@ import Logo from './Logo';
 
 const QUICK_LINKS = ['Home', 'Categories', 'Nominees', 'Live Results', 'Sponsors', 'Gallery'];
 const INFO_LINKS = ['About Us', 'How to Vote', 'FAQs', "Terms & Conditions", 'Privacy Policy', 'Refund Policy'];
-const CATEGORY_LINKS = ['Rider Awards', 'Motorcycle Excellence', 'Riders Clubs', 'Industry Awards', 'Media Awards', 'Special Honours'];
+const CATEGORY_LINKS = ['001 Kenya', 'Rider of the Year', 'Nduthi Blogger of the Year', 'Best Rider group', 'Best customized nduthi', 'People\'s Choice of the Year'];
 
 export default function Footer() {
   return (
@@ -37,7 +37,7 @@ export default function Footer() {
           <ul className="space-y-2 text-sm text-brand-ink/60">
             <li>+254 700 123 456</li>
             <li>info@nduthiawards.co.ke</li>
-            <li>Nairobi, Kenya</li>
+            <li>Eldoret, Kenya</li>
           </ul>
         </div>
       </div>

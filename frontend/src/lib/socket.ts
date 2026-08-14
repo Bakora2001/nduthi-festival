@@ -11,13 +11,23 @@ export const SOCKET_EVENTS = {
 
 /**
  * Lazily connects to the backend Socket.IO server.
- * In production, VITE_API_URL points to the Render backend (e.g. https://nduthi-festival-backend.onrender.com).
- * Locally, it connects to '/' which Vite proxy handles.
  */
 export function getSocket(): Socket {
   if (!socket) {
-    const serverUrl = import.meta.env.VITE_API_URL || '/';
-    socket = io(serverUrl, { path: '/socket.io', autoConnect: true });
+    const serverUrl = import.meta.env.VITE_API_URL || window.location.origin;
+    socket = io(serverUrl, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling'],
+      autoConnect: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('[WebSocket] Connected to live updates server:', socket?.id);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[WebSocket] Disconnected from live updates server');
+    });
   }
   return socket;
 }

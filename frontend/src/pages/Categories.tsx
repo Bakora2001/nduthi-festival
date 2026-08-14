@@ -183,7 +183,7 @@ export default function Categories() {
                             {nom.name}
                           </h3>
                           <p className="text-xs text-brand-ink/60 truncate mt-0.5">
-                            📍 {nom.county || 'Nairobi'} {nom.make ? `• ${nom.make} ${nom.model || ''}` : ''}
+                            📍 {nom.county || 'Eldoret, Kenya'} {nom.make ? `• ${nom.make} ${nom.model || ''}` : ''}
                           </p>
                           {nom.registrationPlate && nom.registrationPlate !== 'N/A' && (
                             <p className="text-[10px] font-mono font-bold bg-brand-ink/5 px-2 py-0.5 rounded inline-block mt-1 text-brand-ink/70">
