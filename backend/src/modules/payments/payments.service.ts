@@ -5,7 +5,7 @@ import { broadcast, SOCKET_EVENTS } from '../../sockets';
 import { emailService } from '../../utils/email';
 import { logger } from '../../utils/logger';
 
-const VOTE_PRICE_KES = 1; // KES 1 per vote for testing
+const VOTE_PRICE_KES = 10; // KES 10 per vote
 
 interface InitiatePaymentInput {
   userId: string;
@@ -16,7 +16,7 @@ interface InitiatePaymentInput {
 
 export const paymentsService = {
   /**
-   * Initiate M-Pesa STK Push payment for voting (KES 1)
+   * Initiate M-Pesa STK Push payment for voting (KES 10)
    */
   async initiate(input: InitiatePaymentInput) {
     const user = await prisma.user.findUnique({ where: { id: input.userId } });

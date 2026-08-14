@@ -21,9 +21,19 @@ export const nomineesController = {
     return ok(res, nominee);
   }),
 
+  initiateRegistration: asyncHandler(async (req: Request, res: Response) => {
+    const result = await nomineesService.initiateRegistration(req.body);
+    return ok(res, result, 'M-Pesa STK Push initiated for participant registration');
+  }),
+
+  checkRegistrationStatus: asyncHandler(async (req: Request, res: Response) => {
+    const result = await nomineesService.checkRegistrationStatus(req.params.paymentId);
+    return ok(res, result);
+  }),
+
   registerParticipant: asyncHandler(async (req: Request, res: Response) => {
-    const nominee = await nomineesService.registerParticipant(req.body);
-    return created(res, nominee, 'Participant registered successfully and added to voting pages!');
+    const result = await nomineesService.initiateRegistration(req.body);
+    return ok(res, result, 'M-Pesa STK Push initiated for participant registration');
   }),
 
   create: asyncHandler(async (req: Request, res: Response) => {
