@@ -43,8 +43,8 @@ export const paymentsService = {
       paymentId: payment.id,
       nomineeId: input.nomineeId,
       userId: input.userId,
-      voterName: `${user.firstName} ${user.lastName}`,
-      voterEmail: user.email,
+      voterName: `${user.firstName} ${user.lastName || ''}`.trim() || 'Voter',
+      voterEmail: user.email || undefined,
     });
 
     // Save location URL in providerRef for live polling
@@ -151,8 +151,8 @@ export const paymentsService = {
 
         // Send payment failed email
         emailService.sendPaymentFailedNotification({
-          toEmail: payment.user.email,
-          voterName: `${payment.user.firstName} ${payment.user.lastName}`,
+          toEmail: payment.user.email || `${payment.user.phone || 'voter'}@nduthiawards.co.ke`,
+          voterName: `${payment.user.firstName} ${payment.user.lastName || ''}`.trim() || 'Voter',
           nomineeName,
           categoryName,
           amount: Number(payment.amount),
@@ -265,8 +265,8 @@ export const paymentsService = {
         }
 
         emailService.sendPaymentFailedNotification({
-          toEmail: payment.user.email,
-          voterName: `${payment.user.firstName} ${payment.user.lastName}`,
+          toEmail: payment.user.email || `${payment.user.phone || 'voter'}@nduthiawards.co.ke`,
+          voterName: `${payment.user.firstName} ${payment.user.lastName || ''}`.trim() || 'Voter',
           nomineeName,
           categoryName,
           amount: Number(payment.amount),
@@ -322,10 +322,13 @@ export const paymentsService = {
       voteCount: nominee.voteCount,
     });
 
+    const voterEmail = params.user.email || `${params.user.phone || 'voter'}@nduthiawards.co.ke`;
+    const voterFullName = `${params.user.firstName} ${params.user.lastName || ''}`.trim() || 'Voter';
+
     // Send emails asynchronously
     emailService.sendVoteConfirmation({
-      toEmail: params.user.email,
-      voterName: `${params.user.firstName} ${params.user.lastName}`,
+      toEmail: voterEmail,
+      voterName: voterFullName,
       nomineeName: nominee.name,
       categoryName: nominee.category.name,
       amount: params.amount,
@@ -333,8 +336,8 @@ export const paymentsService = {
     });
 
     emailService.sendAdminPaymentNotification({
-      voterName: `${params.user.firstName} ${params.user.lastName}`,
-      voterEmail: params.user.email,
+      voterName: voterFullName,
+      voterEmail: voterEmail,
       voterPhone: params.user.phone || undefined,
       nomineeName: nominee.name,
       categoryName: nominee.category.name,

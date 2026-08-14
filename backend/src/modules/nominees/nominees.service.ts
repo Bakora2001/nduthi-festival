@@ -1,16 +1,18 @@
 import { prisma } from '../../config/db';
 import { AppError } from '../../utils/AppError';
 import bcrypt from 'bcryptjs';
+import { formatKenyanPhone } from '../auth/auth.service';
 
 interface RegisterParticipantInput {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  phone: string;
+  email?: string;
   password?: string;
   categoryId: string;
   county?: string;
-  stageName?: string; // e.g. Stage/Location or Club Name
+  stageName?: string;
   make?: string;
   model?: string;
   registrationPlate?: string;
@@ -58,22 +60,45 @@ export const nomineesService = {
   },
 
   /**
-   * Register a new Participant (Nominee) into the system.
-   * Creates User (role NOMINEE), Motorcycle record, and Nominee record.
-   * Participant will AUTOMATICALLY appear on voting pages!
+   * Register a new Participant (Nominee) into the system quickly.
    */
   async registerParticipant(input: RegisterParticipantInput) {
-    // 1. Check category existence
+    if (!input.categoryId) {
+      throw new AppError('Please select an award category', 400);
+    }
+    if (!input.phone) {
+      throw new AppError('Phone number is required', 400);
+    }
+
     const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
     if (!category) {
       throw new AppError('Selected category does not exist', 404);
     }
 
+    const formattedPhone = formatKenyanPhone(input.phone);
+
+    let first = input.firstName || '';
+    let last = input.lastName || '';
+    if (input.name && !first) {
+      const parts = input.name.trim().split(' ');
+      first = parts[0] || 'Rider';
+      last = parts.slice(1).join(' ') || '';
+    }
+    if (!first) first = 'Participant';
+
+    const participantName = `${first} ${last}`.trim();
     let targetUserId = input.userId;
 
-    // If userId not provided, create user or find by email
     if (!targetUserId) {
-      const existingUser = await prisma.user.findUnique({ where: { email: input.email } });
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { phone: formattedPhone },
+            ...(input.email ? [{ email: input.email }] : []),
+          ],
+        },
+      });
+
       if (existingUser) {
         targetUserId = existingUser.id;
       } else {
@@ -84,12 +109,14 @@ export const nomineesService = {
         });
 
         const passwordHash = await bcrypt.hash(input.password || 'NduthiParticipant2025!', 12);
+        const generatedEmail = input.email || `${formattedPhone.replace('+', '')}@nduthiawards.co.ke`;
+
         const newUser = await prisma.user.create({
           data: {
-            firstName: input.firstName,
-            lastName: input.lastName,
-            email: input.email,
-            phone: input.phone,
+            firstName: first,
+            lastName: last,
+            phone: formattedPhone,
+            email: generatedEmail,
             passwordHash,
             roleId: nomineeRole.id,
           },
@@ -98,18 +125,18 @@ export const nomineesService = {
       }
     }
 
-    // 2. Create Motorcycle record if bike info supplied
+    // Create Motorcycle record if info supplied
     let motorcycleId: string | undefined = undefined;
     if (input.make || input.model || input.registrationPlate) {
       const plate = input.registrationPlate
         ? input.registrationPlate.toUpperCase().trim()
-        : `STAGE-${Date.now().toString().slice(-6)}`;
+        : `ELD-${Date.now().toString().slice(-5)}`;
 
       const moto = await prisma.motorcycle.upsert({
         where: { registrationPlate: plate },
-        update: { make: input.make || 'Generic', model: input.model || 'Boda Boda' },
+        update: { make: input.make || 'Motorcycle', model: input.model || 'Boda Boda' },
         create: {
-          make: input.make || 'Generic',
+          make: input.make || 'Motorcycle',
           model: input.model || 'Boda Boda',
           registrationPlate: plate,
         },
@@ -117,18 +144,16 @@ export const nomineesService = {
       motorcycleId = moto.id;
     }
 
-    const participantName = `${input.firstName} ${input.lastName}`.trim();
-
-    // 3. Create Nominee entry in PostgreSQL
+    // Create Nominee entry in PostgreSQL
     const nominee = await prisma.nominee.create({
       data: {
         name: participantName,
-        county: input.county || 'Nairobi',
+        county: input.county || 'Eldoret, Kenya',
         ownerName: input.stageName || participantName,
         categoryId: input.categoryId,
         motorcycleId: motorcycleId,
         userId: targetUserId,
-        imageUrl: input.imageUrl || '/cat_rider_awards.jpg',
+        imageUrl: input.imageUrl || '/cat_motorcycle.jpg',
         voteCount: 0,
         isFeatured: true,
       },
@@ -151,7 +176,7 @@ export const nomineesService = {
     imageUrl?: string;
   }) {
     return prisma.nominee.create({
-      data: { ...data, voteCount: 0 },
+      data: { ...data, county: data.county || 'Eldoret, Kenya', voteCount: 0 },
       include: { category: true, motorcycle: true },
     });
   },

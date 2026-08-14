@@ -1,7 +1,5 @@
 // ==========================================================
 // Nduthi Festival & Awards Kenya - Prisma Schema
-// Generated from Technical Implementation Document (TID) v1.2
-// Section 6: Database Entities
 // ==========================================================
 
 generator client {
@@ -52,8 +50,8 @@ enum NomineeImageType {
 model User {
   id                String    @id @default(uuid())
   firstName         String
-  lastName          String
-  email             String    @unique
+  lastName          String?
+  email             String?   @unique
   phone             String?   @unique
   passwordHash      String
   isEmailVerified   Boolean   @default(false)
@@ -186,7 +184,7 @@ model Payment {
   amount        Decimal       @db.Decimal(10, 2)
   currency      String        @default("KES")
   status        PaymentStatus @default(PENDING)
-  providerRef   String?       @unique
+  providerRef   String?
   vote          Vote?
   transactions  Transaction[]
   createdAt     DateTime      @default(now())

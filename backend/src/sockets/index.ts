@@ -1,6 +1,5 @@
 import { Server as HttpServer } from 'http';
 import { Server as SocketIOServer } from 'socket.io';
-import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
 let io: SocketIOServer | null = null;
@@ -14,14 +13,18 @@ export const SOCKET_EVENTS = {
 
 export function initSockets(server: HttpServer): SocketIOServer {
   io = new SocketIOServer(server, {
-    cors: { origin: env.clientUrl, credentials: true },
+    cors: {
+      origin: true, // Allow all origins (localhost & production Vercel)
+      credentials: true,
+    },
+    transports: ['websocket', 'polling'],
   });
 
   io.on('connection', (socket) => {
-    logger.debug(`Socket connected: ${socket.id}`);
+    logger.info(`[WebSocket] Client connected: ${socket.id}`);
 
     socket.on('disconnect', () => {
-      logger.debug(`Socket disconnected: ${socket.id}`);
+      logger.info(`[WebSocket] Client disconnected: ${socket.id}`);
     });
   });
 
@@ -29,15 +32,14 @@ export function initSockets(server: HttpServer): SocketIOServer {
 }
 
 /**
- * Broadcasts an event to every connected client. Used after a vote is
- * successfully recorded so the homepage, category pages, and leaderboards
- * update instantly without a page refresh (per TID Section 3 — Live Results).
+ * Broadcasts an event to every connected client in real-time.
  */
 export function broadcast<T>(event: string, payload: T) {
   if (!io) {
     logger.warn(`Attempted to broadcast "${event}" before sockets were initialized`);
     return;
   }
+  logger.info(`[WebSocket Broadcast] Emitting "${event}" to all connected clients: ${JSON.stringify(payload)}`);
   io.emit(event, payload);
 }
 

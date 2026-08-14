@@ -4,24 +4,58 @@ import { AppError } from '../../utils/AppError';
 import { signAccessToken, signRefreshToken } from '../../utils/jwt';
 
 interface RegisterInput {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  phone: string;
+  email?: string;
   password: string;
   roleName?: 'REGISTERED_VOTER' | 'NOMINEE';
 }
 
 interface LoginInput {
-  email: string;
+  phone?: string;
+  email?: string;
+  identifier?: string;
   password: string;
+}
+
+export function formatKenyanPhone(phone: string): string {
+  let cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('0')) {
+    cleaned = '254' + cleaned.substring(1);
+  } else if (cleaned.startsWith('7') || cleaned.startsWith('1')) {
+    cleaned = '254' + cleaned;
+  }
+  if (!cleaned.startsWith('+')) {
+    cleaned = '+' + cleaned;
+  }
+  return cleaned;
 }
 
 export const authService = {
   async register(input: RegisterInput) {
-    const existing = await prisma.user.findUnique({ where: { email: input.email } });
+    if (!input.phone) {
+      throw new AppError('Phone number is required', 400);
+    }
+    if (!input.password || input.password.length < 4) {
+      throw new AppError('Password must be at least 4 characters', 400);
+    }
+
+    const formattedPhone = formatKenyanPhone(input.phone);
+
+    // Check if phone already registered
+    const existing = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: formattedPhone },
+          ...(input.email ? [{ email: input.email }] : []),
+        ],
+      },
+    });
+
     if (existing) {
-      throw new AppError('An account with this email already exists', 409);
+      throw new AppError('An account with this phone number already exists. Please log in.', 409);
     }
 
     const roleName = input.roleName || 'REGISTERED_VOTER';
@@ -33,12 +67,23 @@ export const authService = {
 
     const passwordHash = await bcrypt.hash(input.password, 12);
 
+    let first = input.firstName || '';
+    let last = input.lastName || '';
+    if (input.name && !first) {
+      const parts = input.name.trim().split(' ');
+      first = parts[0] || 'Voter';
+      last = parts.slice(1).join(' ') || '';
+    }
+    if (!first) first = 'Voter';
+
+    const generatedEmail = input.email || `${formattedPhone.replace('+', '')}@nduthiawards.co.ke`;
+
     const user = await prisma.user.create({
       data: {
-        firstName: input.firstName,
-        lastName: input.lastName,
-        email: input.email,
-        phone: input.phone,
+        firstName: first,
+        lastName: last,
+        phone: formattedPhone,
+        email: generatedEmail,
         passwordHash,
         roleId: role.id,
       },
@@ -52,6 +97,7 @@ export const authService = {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         phone: user.phone,
         role: user.role.name,
@@ -61,18 +107,35 @@ export const authService = {
   },
 
   async login(input: LoginInput) {
-    const user = await prisma.user.findUnique({
-      where: { email: input.email },
+    const rawIdentifier = (input.phone || input.email || input.identifier || '').trim();
+    if (!rawIdentifier) {
+      throw new AppError('Please enter your phone number or email', 400);
+    }
+    if (!input.password) {
+      throw new AppError('Please enter your password', 400);
+    }
+
+    const formattedPhone = formatKenyanPhone(rawIdentifier);
+
+    // Look up by phone OR email
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: formattedPhone },
+          { phone: rawIdentifier },
+          { email: rawIdentifier.toLowerCase() },
+        ],
+      },
       include: { role: true },
     });
 
     if (!user) {
-      throw new AppError('Invalid email or password', 401);
+      throw new AppError('Account not found. Please check your phone number or sign up.', 401);
     }
 
     const isValid = await bcrypt.compare(input.password, user.passwordHash);
     if (!isValid) {
-      throw new AppError('Invalid email or password', 401);
+      throw new AppError('Incorrect password. Please try again.', 401);
     }
 
     const tokens = await this.issueTokens(user.id, user.role.name);
@@ -82,6 +145,7 @@ export const authService = {
         id: user.id,
         firstName: user.firstName,
         lastName: user.lastName,
+        name: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         phone: user.phone,
         role: user.role.name,
@@ -104,6 +168,7 @@ export const authService = {
       id: user.id,
       firstName: user.firstName,
       lastName: user.lastName,
+      name: `${user.firstName} ${user.lastName}`.trim(),
       email: user.email,
       phone: user.phone,
       role: user.role.name,
