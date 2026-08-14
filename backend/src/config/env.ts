@@ -31,7 +31,7 @@ export const env = {
     clientSecret: required('KOPOKOPO_CLIENT_SECRET'),
     apiKey: required('KOPOKOPO_API_KEY'),
     tillNumber: process.env.KOPOKOPO_TILL_NUMBER || '4681183',
-    callbackUrl: process.env.KOPOKOPO_CALLBACK_URL || 'https://nduthi-festival-backend.onrender.com/api/payments/kopokopo/callback',
+    callbackUrl: process.env.KOPOKOPO_CALLBACK_URL || 'https://nduthi-festival.onrender.com/api/payments/kopokopo/callback',
   },
 
   smtp: {
