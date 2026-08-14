@@ -13,7 +13,7 @@ interface StkPushParams {
   phone: string;
   amount: number;
   paymentId: string;
-  nomineeId: string;
+  nomineeId?: string;
   userId: string;
   voterName?: string;
   voterEmail?: string;
