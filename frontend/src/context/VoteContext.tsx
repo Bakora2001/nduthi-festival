@@ -2,6 +2,10 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { api } from '../lib/api';
 
+// Flag to control voting status (Set to false to allow participants to register first)
+export const VOTING_ENABLED = false;
+export const VOTE_UNIT_PRICE_KES = 10; // 10 KES per vote
+
 export interface NomineeVote {
   id: string;
   name: string;
@@ -35,6 +39,7 @@ interface VoteContextType {
   categories: CategoryItem[];
   totalVotes: number;
   loading: boolean;
+  isVotingEnabled: boolean;
   castVote: (nomineeId: string, nomineeName?: string, categoryName?: string) => void;
   lastVotedNominee: string | null;
   toastMessage: string | null;
@@ -47,13 +52,15 @@ interface VoteContextType {
   paymentModalOpen: boolean;
   selectedNomineeForPayment: NomineeVote | null;
   closePaymentModal: () => void;
-  submitMpesaPayment: (phone: string) => Promise<void>;
+  submitMpesaPayment: (phone: string, amount: number) => Promise<void>;
   paymentLoading: boolean;
   paymentStep: PaymentStatusStep;
   paymentSuccessMessage: string | null;
   paymentErrorMessage: string | null;
   payerPhone: string;
   paymentMpesaRef: string | null;
+  paidAmount: number;
+  votesCastCount: number;
 }
 
 const VoteContext = createContext<VoteContextType | undefined>(undefined);
@@ -85,6 +92,8 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [paymentErrorMessage, setPaymentErrorMessage] = useState<string | null>(null);
   const [payerPhone, setPayerPhone] = useState<string>('');
   const [paymentMpesaRef, setPaymentMpesaRef] = useState<string | null>(null);
+  const [paidAmount, setPaidAmount] = useState<number>(10);
+  const [votesCastCount, setVotesCastCount] = useState<number>(1);
 
   const clearToast = () => {
     setToastMessage(null);
@@ -156,7 +165,9 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setNominees((prev) => {
         const updated = prev.map((nominee) => {
           if (nominee.id === data.nomineeId) {
-            return { ...nominee, votes: (data.voteCount !== undefined) ? data.voteCount : nominee.votes + 1 };
+            const added = data.votesAdded || 1;
+            const newVotes = (data.voteCount !== undefined) ? data.voteCount : nominee.votes + added;
+            return { ...nominee, votes: newVotes };
           }
           return nominee;
         });
@@ -165,7 +176,8 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return updated;
       });
 
-      setTotalVotes((prev) => prev + 1);
+      const addedTotal = data.votesAdded || 1;
+      setTotalVotes((prev) => prev + addedTotal);
     };
 
     socket.on(SOCKET_EVENTS.VOTE_CAST, handleVoteCast);
@@ -176,6 +188,13 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const castVote = (nomineeId: string, targetName?: string, categoryName?: string) => {
+    // If voting is disabled, show informative notice
+    if (!VOTING_ENABLED) {
+      setToastType('info');
+      setToastMessage('⏳ Voting is currently closed while participant registration is ongoing. Register yourself or your bike to be nominated!');
+      return;
+    }
+
     const target = nominees.find((n) => n.id === nomineeId);
 
     // 1. Check if user is logged in
@@ -189,7 +208,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    // 2. Open payment modal to initiate KES 1 M-Pesa payment
+    // 2. Open payment modal to initiate M-Pesa payment
     const selectedNominee = target || {
       id: nomineeId,
       name: targetName || 'Nominee',
@@ -207,8 +226,20 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setPaymentModalOpen(true);
   };
 
-  const submitMpesaPayment = async (phone: string) => {
+  const submitMpesaPayment = async (phone: string, amount: number) => {
+    if (!VOTING_ENABLED) {
+      setToastType('warning');
+      setToastMessage('⏳ Voting is currently closed while participant registration is ongoing.');
+      return;
+    }
+
     if (!selectedNomineeForPayment) return;
+
+    const validatedAmount = Math.max(VOTE_UNIT_PRICE_KES, Number(amount) || VOTE_UNIT_PRICE_KES);
+    const votesToCount = Math.floor(validatedAmount / VOTE_UNIT_PRICE_KES);
+
+    setPaidAmount(validatedAmount);
+    setVotesCastCount(votesToCount);
     setPaymentLoading(true);
     setPaymentStep('initiating');
     setPaymentSuccessMessage(null);
@@ -220,6 +251,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const initRes = await api.post('/payments/initiate', {
         nomineeId: selectedNomineeForPayment.id,
         phone,
+        amount: validatedAmount,
         method: 'MPESA',
       });
 
@@ -228,7 +260,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setPaymentStep('waiting_for_pin');
       setToastType('info');
-      setToastMessage(`📲 M-Pesa STK Push prompt sent to ${phone}! Enter your PIN to complete payment.`);
+      setToastMessage(`📲 M-Pesa STK Push prompt for KES ${validatedAmount.toLocaleString()} (${votesToCount} Votes) sent to ${phone}! Enter PIN.`);
 
       // Poll real-time status from backend
       let attempts = 0;
@@ -245,15 +277,15 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setPaymentLoading(false);
             setPaymentStep('success');
             setPaymentMpesaRef(data.mpesaRef || 'M-PESA-STK-CONFIRMED');
-            setPaymentSuccessMessage(`🎉 Payment of KES 10 confirmed via M-Pesa! Vote cast for ${selectedNomineeForPayment.name}.`);
+            setPaymentSuccessMessage(`🎉 Payment of KES ${validatedAmount.toLocaleString()} confirmed via M-Pesa! ${votesToCount} votes recorded for ${selectedNomineeForPayment.name}.`);
             setToastType('success');
-            setToastMessage(`🎉 Payment confirmed! (Ref: ${data.mpesaRef || 'M-Pesa'}). Vote counted for ${selectedNomineeForPayment.name}!`);
+            setToastMessage(`🎉 Payment confirmed! (Ref: ${data.mpesaRef || 'M-Pesa'}). ${votesToCount} votes counted for ${selectedNomineeForPayment.name}!`);
 
             // Update local state tally
             setNominees((prev) => {
               const updated = prev.map((n) => {
                 if (n.id === selectedNomineeForPayment.id) {
-                  return { ...n, votes: n.votes + 1 };
+                  return { ...n, votes: n.votes + votesToCount };
                 }
                 return n;
               });
@@ -262,7 +294,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return updated;
             });
 
-            setTotalVotes((t) => t + 1);
+            setTotalVotes((t) => t + votesToCount);
             setLastVotedNominee(selectedNomineeForPayment.name);
 
             const newVoted = [...userVotedIds, selectedNomineeForPayment.id];
@@ -271,7 +303,10 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             // Emit WebSocket event
             const socket = getSocket();
-            socket.emit(SOCKET_EVENTS.VOTE_CAST, { nomineeId: selectedNomineeForPayment.id });
+            socket.emit(SOCKET_EVENTS.VOTE_CAST, {
+              nomineeId: selectedNomineeForPayment.id,
+              votesAdded: votesToCount,
+            });
           } else if (data.status === 'FAILED') {
             clearInterval(pollInterval);
             setPaymentLoading(false);
@@ -324,6 +359,7 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         categories,
         totalVotes,
         loading,
+        isVotingEnabled: VOTING_ENABLED,
         castVote,
         lastVotedNominee,
         toastMessage,
@@ -331,6 +367,8 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearToast,
         userVotedIds,
         refetchData: fetchData,
+
+        /* Payment modal */
         paymentModalOpen,
         selectedNomineeForPayment,
         closePaymentModal,
@@ -341,6 +379,8 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         paymentErrorMessage,
         payerPhone,
         paymentMpesaRef,
+        paidAmount,
+        votesCastCount,
       }}
     >
       {children}

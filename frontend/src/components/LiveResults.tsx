@@ -10,7 +10,7 @@ const RANK_STYLES: Record<number, { bg: string; ring: string }> = {
 };
 
 export default function LiveResults() {
-  const { nominees, castVote } = useVote();
+  const { nominees, castVote, isVotingEnabled } = useVote();
   const maxVotes = Math.max(...nominees.map((n) => n.votes), 1);
 
   if (nominees.length === 0) return null;
@@ -80,9 +80,19 @@ export default function LiveResults() {
                 {/* Vote CTA Button */}
                 <button
                   onClick={() => castVote(nominee.id, nominee.name, nominee.categoryName)}
-                  className="w-full py-2 px-3 rounded-xl bg-brand-green text-white text-xs font-bold shadow-card flex items-center justify-center gap-1.5 hover:bg-brand-green-dark transition-all duration-200 hover:scale-[1.02] active:scale-95"
+                  className={`w-full py-2 px-3 rounded-xl text-xs font-bold shadow-card flex items-center justify-center gap-1.5 transition-all duration-200 hover:scale-[1.02] active:scale-95 ${
+                    isVotingEnabled
+                      ? 'bg-brand-green text-white hover:bg-brand-green-dark'
+                      : 'bg-black/5 text-brand-ink/60 border border-black/5 hover:bg-black/10'
+                  }`}
                 >
-                  <Vote size={13} /> Vote (KES 10)
+                  {isVotingEnabled ? (
+                    <>
+                      <Vote size={13} /> Vote
+                    </>
+                  ) : (
+                    <span>⏳ Voting Opens Soon</span>
+                  )}
                 </button>
               </motion.div>
             );

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Vote as VoteIcon, ArrowRight, Radio, Trophy, Award, Sparkles } from 'lucide-react';
+import { Vote as VoteIcon, ArrowRight, Radio, Trophy, Award, Sparkles, Clock } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
 
 const RANK_COLORS: Record<number, string> = {
@@ -10,7 +10,7 @@ const RANK_COLORS: Record<number, string> = {
 };
 
 export default function LiveResults() {
-  const { nominees, categories, totalVotes, castVote } = useVote();
+  const { nominees, categories, totalVotes, castVote, isVotingEnabled } = useVote();
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
   const filteredNominees = selectedCatId
@@ -96,6 +96,29 @@ export default function LiveResults() {
 
         {/* CENTER CONTENT */}
         <div className="space-y-6 min-w-0">
+          {/* Registration Notice */}
+          {!isVotingEnabled && (
+            <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl shrink-0">⏳</span>
+                <div>
+                  <h4 className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                    <Clock size={13} className="text-amber-800" /> Participant Registration Open
+                  </h4>
+                  <p className="text-xs text-amber-900/80 mt-0.5 leading-relaxed">
+                    Voting will officially open once participant registration closes. Register your bike now!
+                  </p>
+                </div>
+              </div>
+              <a
+                href="/login"
+                className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark shadow-sm transition-all"
+              >
+                Register as Participant <ArrowRight size={13} />
+              </a>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h2 className="font-display text-lg font-extrabold text-brand-ink tracking-tight uppercase">
@@ -182,12 +205,21 @@ export default function LiveResults() {
                         <div className="h-full bg-brand-green rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
 
-                      <button
-                        onClick={() => castVote(n.id, n.name, n.categoryName)}
-                        className="w-full py-2 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark transition-colors flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
-                      >
-                        <VoteIcon size={12} /> Vote (KES 10)
-                      </button>
+                      {!isVotingEnabled ? (
+                        <button
+                          onClick={() => castVote(n.id, n.name, n.categoryName)}
+                          className="w-full py-2 rounded-xl bg-black/5 text-brand-ink/60 text-xs font-bold border border-black/5 hover:bg-black/10 transition-colors flex items-center justify-center gap-1.5"
+                        >
+                          <span>⏳ Voting Opens Soon</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => castVote(n.id, n.name, n.categoryName)}
+                          className="w-full py-2 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark transition-colors flex items-center justify-center gap-1.5 shadow-sm active:scale-95"
+                        >
+                          <VoteIcon size={12} /> Vote
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 );

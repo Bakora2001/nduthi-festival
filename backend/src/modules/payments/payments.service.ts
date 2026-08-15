@@ -5,20 +5,30 @@ import { broadcast, SOCKET_EVENTS } from '../../sockets';
 import { emailService } from '../../utils/email';
 import { logger } from '../../utils/logger';
 
-const VOTE_PRICE_KES = 10; // KES 10 per vote
+// Flag to control voting active state (Set to false to allow participants to register first)
+export const VOTING_ENABLED = false;
+export const VOTE_UNIT_PRICE_KES = 10; // 10 KES per vote
 
 interface InitiatePaymentInput {
   userId: string;
   nomineeId: string;
   method: 'MPESA' | 'AIRTEL_MONEY' | 'VISA' | 'MASTERCARD';
   phone: string;
+  amount?: number; // Custom amount specified by the voter (minimum 10 KES)
 }
 
 export const paymentsService = {
   /**
-   * Initiate M-Pesa STK Push payment for voting (KES 10)
+   * Initiate M-Pesa STK Push payment for voting (Custom voter amount, min KES 10)
    */
   async initiate(input: InitiatePaymentInput) {
+    if (!VOTING_ENABLED) {
+      throw new AppError(
+        'Voting is currently closed while participant registration is ongoing. Please register as a participant to be nominated or check back soon!',
+        403
+      );
+    }
+
     const user = await prisma.user.findUnique({ where: { id: input.userId } });
     if (!user) throw new AppError('User not found', 404);
 
@@ -28,18 +38,20 @@ export const paymentsService = {
     });
     if (!nominee) throw new AppError('Nominee not found', 404);
 
+    const voteAmount = Math.max(VOTE_UNIT_PRICE_KES, Number(input.amount) || VOTE_UNIT_PRICE_KES);
+
     const payment = await prisma.payment.create({
       data: {
         userId: input.userId,
         method: input.method,
-        amount: VOTE_PRICE_KES,
+        amount: voteAmount,
         status: 'PENDING',
       },
     });
 
     const stkResult = await kopokopoService.initiateStkPush({
       phone: input.phone,
-      amount: VOTE_PRICE_KES,
+      amount: voteAmount,
       paymentId: payment.id,
       nomineeId: input.nomineeId,
       userId: input.userId,
@@ -60,7 +72,8 @@ export const paymentsService = {
       nomineeId: nominee.id,
       nomineeName: nominee.name,
       categoryName: nominee.category.name,
-      amount: VOTE_PRICE_KES,
+      amount: voteAmount,
+      votesToCast: Math.floor(voteAmount / VOTE_UNIT_PRICE_KES),
       status: 'PENDING',
       provider: stkResult,
     };
@@ -83,6 +96,7 @@ export const paymentsService = {
         status: 'SUCCESS',
         paymentId: payment.id,
         amount: Number(payment.amount),
+        votesCast: Math.max(1, Math.floor(Number(payment.amount) / VOTE_UNIT_PRICE_KES)),
         mpesaRef: payment.providerRef && !payment.providerRef.startsWith('http') ? payment.providerRef : 'M-PESA-CONFIRMED',
         completed: true,
       };
@@ -127,6 +141,7 @@ export const paymentsService = {
           paymentId: payment.id,
           mpesaRef: k2Status.mpesaRef || 'M-PESA-CONFIRMED',
           amount: Number(payment.amount),
+          votesCast: Math.max(1, Math.floor(Number(payment.amount) / VOTE_UNIT_PRICE_KES)),
           completed: true,
         };
       } else if (rawStatus === 'failed' || rawStatus === 'rejected') {
@@ -298,6 +313,8 @@ export const paymentsService = {
       return { vote: existingVote, alreadyVoted: true };
     }
 
+    const votesToAdd = Math.max(1, Math.floor(params.amount / VOTE_UNIT_PRICE_KES));
+
     const [vote, nominee] = await prisma.$transaction([
       prisma.vote.create({
         data: {
@@ -308,7 +325,7 @@ export const paymentsService = {
       }),
       prisma.nominee.update({
         where: { id: params.nomineeId },
-        data: { voteCount: { increment: 1 } },
+        data: { voteCount: { increment: votesToAdd } },
         include: { category: true },
       }),
     ]);
@@ -320,6 +337,7 @@ export const paymentsService = {
       categoryId: nominee.categoryId,
       categoryName: nominee.category.name,
       voteCount: nominee.voteCount,
+      votesAdded: votesToAdd,
     });
 
     const voterEmail = params.user.email || `${params.user.phone || 'voter'}@nduthiawards.co.ke`;

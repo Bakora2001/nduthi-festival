@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, CheckCircle2, ShieldCheck, ArrowRight, Loader2, AlertCircle, RefreshCw, Receipt, Mail, User } from 'lucide-react';
+import { X, Phone, CheckCircle2, ShieldCheck, ArrowRight, Loader2, AlertCircle, RefreshCw, Receipt, Mail, User, Coins } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
+
+const PRESET_AMOUNTS = [10, 50, 100, 200, 500, 1000];
 
 export default function PaymentModal() {
   const {
@@ -14,9 +16,13 @@ export default function PaymentModal() {
     paymentErrorMessage,
     payerPhone,
     paymentMpesaRef,
+    paidAmount,
+    votesCastCount,
   } = useVote();
 
   const [phone, setPhone] = useState('');
+  const [voteAmount, setVoteAmount] = useState<number>(10);
+  const [customAmountStr, setCustomAmountStr] = useState<string>('10');
   const [error, setError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<{ email?: string; firstName?: string; lastName?: string; phone?: string } | null>(null);
 
@@ -35,6 +41,21 @@ export default function PaymentModal() {
 
   if (!paymentModalOpen || !selectedNomineeForPayment) return null;
 
+  const currentVotesCount = Math.max(1, Math.floor(voteAmount / 10));
+
+  const handleAmountSelect = (amt: number) => {
+    setVoteAmount(amt);
+    setCustomAmountStr(String(amt));
+  };
+
+  const handleCustomAmountChange = (val: string) => {
+    setCustomAmountStr(val);
+    const parsed = parseInt(val, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      setVoteAmount(parsed);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -45,7 +66,12 @@ export default function PaymentModal() {
       return;
     }
 
-    await submitMpesaPayment(cleanPhone);
+    if (!voteAmount || voteAmount < 10) {
+      setError('Minimum vote amount is KES 10 (1 vote = KES 10)');
+      return;
+    }
+
+    await submitMpesaPayment(cleanPhone, voteAmount);
   };
 
   const voterDisplayName = currentUser ? `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'Registered Voter' : 'Registered Voter';
@@ -53,7 +79,7 @@ export default function PaymentModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -73,9 +99,9 @@ export default function PaymentModal() {
             <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl">📱</span>
             </div>
-            <h3 className="font-display font-extrabold text-xl">M-Pesa STK Push Payment</h3>
+            <h3 className="font-display font-extrabold text-xl">Cast Your Vote</h3>
             <p className="text-xs text-white/80 mt-1">
-              Vote Fee: <strong className="text-[#F5C542] text-sm">KES 10</strong>
+              Rate: <strong className="text-[#F5C542]">KES 10 per Vote</strong>
             </p>
           </div>
 
@@ -109,7 +135,7 @@ export default function PaymentModal() {
                 <div>
                   <h4 className="font-display font-bold text-lg text-brand-ink">M-Pesa Payment Confirmed! 🎉</h4>
                   <p className="text-xs text-brand-ink/70 mt-0.5">
-                    Your payment of <strong>KES 10.00</strong> was received and your vote is officially counted.
+                    Your payment of <strong>KES {paidAmount.toLocaleString()}.00</strong> was received and <strong>{votesCastCount} vote(s)</strong> have been recorded.
                   </p>
                 </div>
 
@@ -155,9 +181,14 @@ export default function PaymentModal() {
                     <strong className="text-brand-ink">{selectedNomineeForPayment.categoryName}</strong>
                   </div>
 
+                  <div className="flex justify-between">
+                    <span className="text-brand-ink/55">Votes Added:</span>
+                    <strong className="text-brand-green font-black">{votesCastCount} Votes</strong>
+                  </div>
+
                   <div className="flex justify-between border-t border-black/5 pt-2">
                     <span className="text-brand-ink/55">Amount Paid:</span>
-                    <strong className="text-brand-ink font-bold text-sm">KES 10.00</strong>
+                    <strong className="text-brand-ink font-bold text-sm">KES {paidAmount.toLocaleString()}.00</strong>
                   </div>
 
                   <div className="flex justify-between items-center">
@@ -195,7 +226,7 @@ export default function PaymentModal() {
                 <div>
                   <h4 className="font-display font-bold text-base text-brand-ink">Enter M-Pesa PIN on Your Phone</h4>
                   <p className="text-xs text-brand-ink/65 mt-1">
-                    An STK prompt for <strong>KES 10</strong> has been sent to <strong className="text-brand-ink">{payerPhone || phone}</strong>.
+                    An STK prompt for <strong className="text-brand-green font-bold">KES {voteAmount.toLocaleString()} ({currentVotesCount} Votes)</strong> has been sent to <strong className="text-brand-ink">{payerPhone || phone}</strong>.
                   </p>
                 </div>
 
@@ -205,7 +236,7 @@ export default function PaymentModal() {
                 </div>
 
                 <p className="text-[11px] text-brand-ink/40">
-                  Your vote will only be counted once the payment is confirmed.
+                  Your {currentVotesCount} vote(s) will only be counted once the payment is confirmed.
                 </p>
               </div>
             )}
@@ -237,6 +268,60 @@ export default function PaymentModal() {
             {/* State 4: IDLE / FORM */}
             {(paymentStep === 'idle' || paymentStep === 'initiating') && (
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Vote Amount Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold text-brand-ink/70">
+                      Select or Enter Voting Amount (KES) *
+                    </label>
+                    <span className="text-[11px] font-black text-brand-green bg-brand-green/10 px-2 py-0.5 rounded-full">
+                      {currentVotesCount} {currentVotesCount === 1 ? 'Vote' : 'Votes'}
+                    </span>
+                  </div>
+
+                  {/* Preset chips */}
+                  <div className="grid grid-cols-3 gap-2 mb-2.5">
+                    {PRESET_AMOUNTS.map((amt) => {
+                      const votes = Math.floor(amt / 10);
+                      const isSelected = voteAmount === amt;
+                      return (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => handleAmountSelect(amt)}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all text-center ${
+                            isSelected
+                              ? 'border-brand-green bg-brand-green text-white shadow-sm'
+                              : 'border-black/10 bg-white text-brand-ink hover:border-black/20'
+                          }`}
+                        >
+                          <div>KES {amt.toLocaleString()}</div>
+                          <div className={`text-[10px] font-normal ${isSelected ? 'text-white/80' : 'text-brand-ink/50'}`}>
+                            {votes} {votes === 1 ? 'Vote' : 'Votes'}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom input */}
+                  <div className="flex items-center gap-2 border rounded-xl px-3.5 py-2.5 bg-brand-ink/[0.02] border-black/10 focus-within:border-brand-green">
+                    <Coins size={16} className="text-brand-ink/40 shrink-0" />
+                    <input
+                      type="number"
+                      min={10}
+                      step={10}
+                      value={customAmountStr}
+                      onChange={(e) => handleCustomAmountChange(e.target.value)}
+                      placeholder="Enter custom amount (e.g. 300)"
+                      disabled={paymentLoading}
+                      className="w-full bg-transparent text-sm text-brand-ink font-bold outline-none placeholder:text-brand-ink/30"
+                    />
+                    <span className="text-xs font-semibold text-brand-ink/40 shrink-0">KES</span>
+                  </div>
+                </div>
+
+                {/* Phone Number */}
                 <div>
                   <label className="block text-xs font-bold text-brand-ink/70 mb-1.5">
                     M-Pesa Phone Number *
@@ -259,7 +344,7 @@ export default function PaymentModal() {
                 <div className="p-3 rounded-xl bg-black/[0.03] text-[11px] text-brand-ink/65 flex items-start gap-2 leading-relaxed">
                   <ShieldCheck size={16} className="text-brand-green shrink-0 mt-0.5" />
                   <span>
-                    When you click <strong>Proceed & Pay KES 10</strong>, an M-Pesa STK Push prompt will be sent directly to your phone. Enter your PIN to complete.
+                    When you click below, an M-Pesa STK Push prompt for <strong>KES {voteAmount.toLocaleString()}</strong> ({currentVotesCount} votes) will be sent to your phone. Enter your PIN to complete.
                   </span>
                 </div>
 
@@ -275,7 +360,7 @@ export default function PaymentModal() {
                     </>
                   ) : (
                     <>
-                      <span>Proceed & Pay KES 10</span>
+                      <span>Proceed & Pay KES {voteAmount.toLocaleString()} ({currentVotesCount} {currentVotesCount === 1 ? 'Vote' : 'Votes'})</span>
                       <ArrowRight size={16} />
                     </>
                   )}

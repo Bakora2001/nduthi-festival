@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bike, Trophy, Users, Cog, Camera, Star, ShieldCheck, Lock, TrendingUp, Info, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Bike, Trophy, Users, Cog, Camera, Star, ShieldCheck, Lock, TrendingUp, Info, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
 
 const ICONS: Record<string, typeof Bike> = {
@@ -15,7 +15,7 @@ const ACCENT_BG = ['bg-[#0B8E36]', 'bg-[#D61F26]', 'bg-[#F5C542] text-brand-ink'
 const ACCENT_BTN = ['bg-[#0B8E36] hover:bg-[#076B29]', 'bg-[#D61F26] hover:bg-[#A8181D]', 'bg-[#F5C542] hover:bg-[#D9A82B] text-brand-ink', 'bg-blue-600 hover:bg-blue-700', 'bg-purple-600 hover:bg-purple-700', 'bg-orange-500 hover:bg-orange-600'];
 
 export default function Categories() {
-  const { categories, nominees, totalVotes, castVote, userVotedIds } = useVote();
+  const { categories, nominees, totalVotes, castVote, isVotingEnabled } = useVote();
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
 
   const filteredNominees = selectedCatId
@@ -42,7 +42,7 @@ export default function Categories() {
             <p className="text-xs text-brand-ink/45 mb-2">
               <a href="/" className="hover:text-brand-green">Home</a>
               <span className="mx-1.5 text-brand-ink/30">/</span>
-              <span className="text-brand-ink/70">Categories & Voting</span>
+              <span className="text-brand-ink/70">Categories & Nominees</span>
             </p>
             <h1 className="font-display font-extrabold leading-[1.05] text-[2.2rem] sm:text-[2.7rem]">
               <span className="text-brand-green">OFFICIAL</span>{' '}
@@ -51,7 +51,7 @@ export default function Categories() {
               <span className="text-brand-ink">CATEGORIES & NOMINEES</span>
             </h1>
             <p className="text-sm text-brand-ink/60 mt-3 max-w-md leading-relaxed">
-              Explore categories, view registered participants, and vote for your favorite riders for KES 1 via M-Pesa.
+              Explore the 10 official award categories, view registered participants across Eldoret & Kenya, or register yourself.
             </p>
           </div>
 
@@ -68,10 +68,10 @@ export default function Categories() {
         {/* Stats bar */}
         <div className="container-nd relative pb-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm z-10">
           {[
-            { label: 'Categories', value: String(categories.length), icon: '🏆' },
+            { label: 'Award Categories', value: String(categories.length), icon: '🏆' },
             { label: 'Registered Nominees', value: String(nominees.length), icon: '🏍️' },
             { label: 'Total Votes Cast', value: totalVotes.toLocaleString(), icon: '📊' },
-            { label: 'Fee per Vote', value: 'KES 1', icon: '📲' },
+            { label: 'Status', value: isVotingEnabled ? 'Voting Live (10 Bob)' : 'Registration Phase', icon: '📲' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-3 bg-white/90 backdrop-blur rounded-xl px-4 py-3 border border-black/5 shadow-card">
               <span className="text-xl shrink-0">{s.icon}</span>
@@ -117,8 +117,8 @@ export default function Categories() {
 
             <div className="mt-6 pt-4 border-t border-black/5">
               <a
-                href="/register"
-                className="w-full inline-flex items-center justify-center gap-2 bg-brand-green/10 text-brand-green text-xs font-bold py-2.5 rounded-xl hover:bg-brand-green hover:text-white transition-all"
+                href="/login"
+                className="w-full inline-flex items-center justify-center gap-2 bg-brand-green text-white text-xs font-bold py-2.5 rounded-xl hover:bg-brand-green-dark transition-all shadow-sm"
               >
                 <span>➕ Register as Participant</span>
               </a>
@@ -127,6 +127,29 @@ export default function Categories() {
 
           {/* Nominees Grid */}
           <div className="space-y-6">
+            {/* Registration Banner */}
+            {!isVotingEnabled && (
+              <div className="bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl shrink-0">⏳</span>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                      <Clock size={13} className="text-amber-800" /> Participant Registration Open
+                    </h4>
+                    <p className="text-xs text-amber-900/80 mt-0.5 leading-relaxed">
+                      Public voting is temporarily paused to allow riders and motorcycle owners across Kenya to register. Register now to be on the ballot!
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="/login"
+                  className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-green text-white text-xs font-bold hover:bg-brand-green-dark shadow-sm transition-all"
+                >
+                  Register Now <ArrowRight size={13} />
+                </a>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <h2 className="font-display font-extrabold text-xl text-brand-ink">
                 {selectedCatId
@@ -146,7 +169,7 @@ export default function Categories() {
                   Be the first to register as a participant in this category!
                 </p>
                 <a
-                  href="/register"
+                  href="/login"
                   className="mt-4 inline-flex items-center gap-2 bg-brand-green text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow hover:bg-brand-green-dark"
                 >
                   Register as Participant <ArrowRight size={14} />
@@ -155,7 +178,6 @@ export default function Categories() {
             ) : (
               <div className="grid sm:grid-cols-2 gap-4">
                 {filteredNominees.map((nom, idx) => {
-                  const hasVoted = userVotedIds.includes(nom.id);
                   const btnColor = ACCENT_BTN[idx % ACCENT_BTN.length];
 
                   return (
@@ -200,13 +222,22 @@ export default function Categories() {
                           </p>
                         </div>
 
-                        <button
-                          onClick={() => castVote(nom.id, nom.name, nom.categoryName)}
-                          className={`inline-flex items-center gap-1.5 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-95 ${btnColor}`}
-                        >
-                          <span>Vote (KES 10)</span>
-                          <ArrowRight size={13} />
-                        </button>
+                        {!isVotingEnabled ? (
+                          <button
+                            onClick={() => castVote(nom.id, nom.name, nom.categoryName)}
+                            className="inline-flex items-center gap-1.5 text-brand-ink/60 bg-black/5 hover:bg-black/10 text-xs font-bold px-3 py-2 rounded-xl transition-all border border-black/5"
+                          >
+                            <span>⏳ Voting Opens Soon</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => castVote(nom.id, nom.name, nom.categoryName)}
+                            className={`inline-flex items-center gap-1.5 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm hover:scale-[1.02] active:scale-95 ${btnColor}`}
+                          >
+                            <span>Vote</span>
+                            <ArrowRight size={13} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -223,11 +254,11 @@ export default function Categories() {
                 <h3 className="text-xs font-bold text-brand-ink tracking-wider uppercase">How Voting Works</h3>
               </div>
               <p className="text-xs text-brand-ink/55 leading-relaxed mb-4">
-                Voting costs <strong>KES 1 per vote</strong> via M-Pesa STK Push. Every vote updates the live leaderboard in real-time.
+                Voting rate is <strong>KES 10 per vote</strong> via M-Pesa STK Push. Voters can choose any custom amount to vote with. Every vote updates the leaderboard in real-time.
               </p>
               <ul className="space-y-2 text-xs font-semibold text-brand-ink/70 border-t border-black/5 pt-3">
                 <li className="flex items-center gap-2"><ShieldCheck size={14} className="text-brand-green" /> Instant M-Pesa Prompt</li>
-                <li className="flex items-center gap-2"><Lock size={14} className="text-brand-green" /> Email Payment Receipt</li>
+                <li className="flex items-center gap-2"><Lock size={14} className="text-brand-green" /> Flexible Vote Amount</li>
                 <li className="flex items-center gap-2"><TrendingUp size={14} className="text-brand-green" /> Real-time Live Tally</li>
               </ul>
             </div>

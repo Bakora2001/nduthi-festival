@@ -10,6 +10,7 @@ export const paymentsController = {
       userId: req.user!.userId,
       nomineeId: req.body.nomineeId,
       phone: req.body.phone,
+      amount: req.body.amount ? Number(req.body.amount) : undefined,
       method: req.body.method || 'MPESA',
     });
     return ok(res, result, 'Payment initiated successfully');
