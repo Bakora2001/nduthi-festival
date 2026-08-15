@@ -138,6 +138,19 @@ export const authService = {
       throw new AppError('Incorrect password. Please try again.', 401);
     }
 
+    // If user is a NOMINEE (Rider/Participant), verify their registration payment was confirmed
+    if (user.role.name === 'NOMINEE') {
+      const nomineeRecord = await prisma.nominee.findFirst({ where: { userId: user.id } });
+      const paidRecord = await prisma.payment.findFirst({ where: { userId: user.id, status: 'SUCCESS' } });
+
+      if (!nomineeRecord && !paidRecord) {
+        throw new AppError(
+          'Participant registration payment is incomplete. Please complete your registration and M-Pesa payment to activate your account.',
+          403
+        );
+      }
+    }
+
     const tokens = await this.issueTokens(user.id, user.role.name);
 
     return {

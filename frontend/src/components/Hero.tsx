@@ -4,13 +4,6 @@ import { useCountdown } from '../hooks/useCountdown';
 
 const FESTIVAL_DATE = new Date(Date.now() + 1000 * 60 * 60 * 24 * 23 + 1000 * 60 * 60 * 14);
 
-const AVATARS = [
-  'https://i.pravatar.cc/36?img=1',
-  'https://i.pravatar.cc/36?img=5',
-  'https://i.pravatar.cc/36?img=11',
-  'https://i.pravatar.cc/36?img=17',
-];
-
 export default function Hero() {
   const { days, hours, minutes, seconds } = useCountdown(FESTIVAL_DATE);
 
@@ -117,26 +110,6 @@ export default function Hero() {
               >
                 <PlayCircle size={15} /> How to Vote
               </a>
-            </div>
-
-            {/* Avatars + tagline */}
-            <div className="mt-7 flex items-center gap-3">
-              <div className="flex -space-x-2.5">
-                {AVATARS.map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt="community member"
-                    className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
-                  />
-                ))}
-              </div>
-              <div>
-                <p className="text-[11px] text-brand-ink/50">Be part of the movement!</p>
-                <p className="text-xs font-semibold text-brand-ink">
-                  Ride safe. Ride proud. Vote your heroes.
-                </p>
-              </div>
             </div>
           </motion.div>
         </div>

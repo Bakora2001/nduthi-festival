@@ -73,7 +73,7 @@ export default function Categories() {
             { label: 'Award Categories', value: String(categories.length), icon: '🏆' },
             { label: 'Registered Nominees', value: String(nominees.length), icon: '🏍️' },
             { label: 'Total Votes Cast', value: totalVotes.toLocaleString(), icon: '📊' },
-            { label: 'Status', value: isVotingEnabled ? 'Voting Live (10 Bob)' : 'Registration Phase', icon: '📲' },
+            { label: 'Status', value: isVotingEnabled ? 'Voting Live' : 'Registration Phase', icon: '📲' },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-3 bg-white/90 backdrop-blur rounded-xl px-4 py-3 border border-black/5 shadow-card">
               <span className="text-xl shrink-0">{s.icon}</span>

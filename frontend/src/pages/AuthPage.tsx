@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye, EyeOff, ArrowRight, CheckCircle2, Phone,
   Lock, User, Award, MapPin, Bike, Sparkles, Loader2,
-  AlertCircle, Receipt, RefreshCw
+  AlertCircle, Receipt, RefreshCw, Upload, Image as ImageIcon, X
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -21,7 +21,7 @@ interface CategoryItem {
 const FEATURES = [
   'Vote for your favourite riders & motorcycles in Eldoret',
   'Track live results in real-time on the leaderboard',
-  'Fast M-Pesa STK Push payment (KES 10 per vote)',
+  'Fast & Secure M-Pesa STK Push payment',
   'Instant voter confirmation & live leaderboard tally',
 ];
 
@@ -78,6 +78,8 @@ export default function AuthPage() {
   const [bikeMake, setBikeMake] = useState('Boxer');
   const [bikeModel, setBikeModel] = useState('BM 150');
   const [registrationPlate, setRegistrationPlate] = useState('');
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── Participant Payment Modal State ── */
   const [regPaymentStep, setRegPaymentStep] = useState<RegPaymentStep>('idle');
@@ -99,6 +101,31 @@ export default function AuthPage() {
 
   const selectedCategoryObj = categories.find((c) => c.id === categoryId);
   const currentParticipantFee = getCategoryFee(selectedCategoryObj);
+
+  /* ── Handle Image Selection ── */
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check size (max 8MB)
+    if (file.size > 8 * 1024 * 1024) {
+      alert('Photo is too large. Please upload an image smaller than 8MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPhotoPreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removePhoto = () => {
+    setPhotoPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   /* ── Quick Validation ── */
   function validateRegister() {
@@ -185,7 +212,7 @@ export default function AuthPage() {
           make: bikeMake,
           model: bikeModel,
           registrationPlate,
-          imageUrl: '/cat_motorcycle.jpg',
+          imageUrl: photoPreview || '/cat_motorcycle.jpg',
         });
 
         const data = initRes.data?.data || initRes.data;
@@ -271,7 +298,7 @@ export default function AuthPage() {
           </a>
 
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-green/20 border border-brand-green/30 text-brand-green text-xs font-bold tracking-wide uppercase mb-4">
-            <Sparkles size={13} /> Official Voting Platform • Eldoret, Kenya
+            <Sparkles size={13} /> Official Platform • Eldoret, Kenya
           </span>
 
           <h2 className="font-display font-extrabold text-3xl xl:text-4xl text-white leading-tight">
@@ -312,7 +339,7 @@ export default function AuthPage() {
             </h1>
             <p className="text-xs text-brand-ink/60 mt-1">
               {tab === 'login'
-                ? 'Enter your phone number & password to sign in and vote.'
+                ? 'Enter your phone number & password to sign in.'
                 : 'Fast registration — sign up in 10 seconds!'}
             </p>
           </div>
@@ -396,7 +423,7 @@ export default function AuthPage() {
                 disabled={loading}
                 className="w-full mt-2 flex items-center justify-center gap-2 bg-[#076B29] text-white text-sm font-bold py-3.5 rounded-xl shadow-lg hover:bg-[#05521F] transition-all disabled:opacity-50"
               >
-                <span>{loading ? 'Signing In...' : 'Sign In & Vote'}</span>
+                <span>{loading ? 'Signing In...' : 'Sign In'}</span>
                 <ArrowRight size={16} />
               </button>
             </form>
@@ -422,7 +449,7 @@ export default function AuthPage() {
                   >
                     <div className="text-lg mb-1">🗳️</div>
                     <p className="font-bold text-xs text-brand-ink">Voter</p>
-                    <p className="text-[10px] text-brand-ink/50 leading-tight">Vote for riders (KES 10/vote)</p>
+                    <p className="text-[10px] text-brand-ink/50 leading-tight">Vote for your favorite riders</p>
                   </button>
 
                   <button
@@ -436,7 +463,7 @@ export default function AuthPage() {
                   >
                     <div className="text-lg mb-1">🏍️</div>
                     <p className="font-bold text-xs text-brand-ink">Participant / Rider</p>
-                    <p className="text-[10px] text-brand-ink/50 leading-tight">To be voted for</p>
+                    <p className="text-[10px] text-brand-ink/50 leading-tight">Register to receive votes</p>
                   </button>
                 </div>
               </div>
@@ -513,6 +540,54 @@ export default function AuthPage() {
                       • 001 Kenya, Rider of the Year, Best Motorcycle dealer: <strong>KES 1,000</strong><br />
                       • Best Rider group: <strong>KES 5,000</strong><br />
                       • Other categories: <strong>KES 500</strong>
+                    </p>
+                  </div>
+
+                  {/* ── Optional Motorcycle Photo Upload ── */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-brand-ink/70 mb-1">
+                      Motorcycle / Rider Photo (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+
+                    {photoPreview ? (
+                      <div className="relative rounded-2xl overflow-hidden border border-brand-green/30 bg-white p-2 flex items-center gap-3">
+                        <img
+                          src={photoPreview}
+                          alt="Uploaded motorcycle preview"
+                          className="w-16 h-16 rounded-xl object-cover border border-black/10"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-brand-ink truncate">Photo attached ✓</p>
+                          <p className="text-[10px] text-brand-green font-semibold">Will be displayed on ballot</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removePhoto}
+                          className="p-1.5 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                          title="Remove photo"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full flex items-center justify-center gap-2 py-3 px-3 rounded-xl border border-dashed border-brand-green/40 bg-white hover:bg-brand-green/5 transition-all text-xs font-bold text-brand-green"
+                      >
+                        <Upload size={14} />
+                        <span>Upload Photo of Motorcycle / Rider</span>
+                      </button>
+                    )}
+                    <p className="text-[10px] text-brand-ink/50 mt-1">
+                      Upload clear photo of your motorcycle to appear on the awards voting page and leaderboard.
                     </p>
                   </div>
 
