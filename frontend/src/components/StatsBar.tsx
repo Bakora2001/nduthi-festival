@@ -1,4 +1,4 @@
-import { Star, Users, BarChart3, UserCheck, Calendar } from 'lucide-react';
+import { Star, Users, BarChart3, MapPin, Sparkles } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
 
 export default function StatsBar() {
@@ -6,15 +6,14 @@ export default function StatsBar() {
 
   const ITEMS = [
     { icon: Star, label: 'Award Categories', value: categories.length.toLocaleString(), color: 'text-brand-green' },
-    { icon: Users, label: 'Nominees', value: nominees.length.toLocaleString(), color: 'text-brand-red' },
-    { icon: BarChart3, label: 'Total Votes', value: totalVotes.toLocaleString(), color: 'text-brand-ink' },
-    { icon: UserCheck, label: 'Fee per Vote', value: 'KES 1', color: 'text-brand-green' },
-    { icon: Calendar, label: 'Voting Status', value: 'ACTIVE', color: 'text-brand-gold-dark' },
+    { icon: Users, label: 'Registered Nominees', value: nominees.length.toLocaleString(), color: 'text-brand-red' },
+    { icon: BarChart3, label: 'Total Votes Cast', value: totalVotes.toLocaleString(), color: 'text-brand-ink' },
+    { icon: MapPin, label: 'Edition Location', value: 'Eldoret, Kenya', color: 'text-brand-gold-dark' },
   ];
 
   return (
     <section className="border-y border-black/5 bg-white">
-      <div className="container-nd py-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="container-nd py-6 grid grid-cols-2 sm:grid-cols-4 gap-6">
         {ITEMS.map((item) => (
           <div key={item.label} className="flex items-center gap-3">
             <item.icon size={20} className={item.color} strokeWidth={2.2} />
