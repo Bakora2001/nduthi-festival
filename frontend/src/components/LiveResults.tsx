@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { useVote } from '../context/VoteContext';
-import { Vote } from 'lucide-react';
+import { Vote, ZoomIn } from 'lucide-react';
+import ImageModal, { ImageModalData } from './ImageModal';
 
 const RANK_STYLES: Record<number, { bg: string; ring: string }> = {
   1: { bg: 'bg-[#F5C542]', ring: 'ring-[#F5C542]/20' },
@@ -11,6 +13,7 @@ const RANK_STYLES: Record<number, { bg: string; ring: string }> = {
 
 export default function LiveResults() {
   const { nominees, castVote, isVotingEnabled } = useVote();
+  const [selectedImageNominee, setSelectedImageNominee] = useState<ImageModalData | null>(null);
   const maxVotes = Math.max(...nominees.map((n) => n.votes), 1);
 
   if (nominees.length === 0) return null;
@@ -55,15 +58,46 @@ export default function LiveResults() {
                     </p>
                   </div>
 
-                  {/* Nominee details */}
+                  {/* Nominee details with Click-to-Zoom */}
                   <div className="flex gap-4 items-center mb-4">
-                    <img
-                      src={nominee.img || '/cat_rider_awards.jpg'}
-                      alt={nominee.name}
-                      className="w-[88px] h-[64px] object-cover rounded-xl shadow-sm border border-black/5 shrink-0"
-                    />
+                    <div
+                      onClick={() => setSelectedImageNominee({
+                        imageUrl: nominee.img || '/cat_rider_awards.jpg',
+                        name: nominee.name,
+                        categoryName: nominee.categoryName,
+                        county: nominee.county,
+                        make: nominee.make,
+                        model: nominee.model,
+                        registrationPlate: nominee.registrationPlate,
+                      })}
+                      className="relative cursor-pointer group shrink-0"
+                      title="Click to view full photo"
+                    >
+                      <img
+                        src={nominee.img || '/cat_rider_awards.jpg'}
+                        alt={nominee.name}
+                        className="w-[88px] h-[64px] object-cover rounded-xl shadow-sm border border-black/5 group-hover:scale-105 transition-all duration-200"
+                      />
+                      <div className="absolute inset-0 bg-black/35 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[1px]">
+                        <ZoomIn size={16} />
+                      </div>
+                    </div>
+
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-brand-ink truncate leading-snug">{nominee.name}</p>
+                      <p
+                        onClick={() => setSelectedImageNominee({
+                          imageUrl: nominee.img || '/cat_rider_awards.jpg',
+                          name: nominee.name,
+                          categoryName: nominee.categoryName,
+                          county: nominee.county,
+                          make: nominee.make,
+                          model: nominee.model,
+                          registrationPlate: nominee.registrationPlate,
+                        })}
+                        className="text-sm font-bold text-brand-ink truncate leading-snug cursor-pointer hover:text-brand-green transition-colors"
+                      >
+                        {nominee.name}
+                      </p>
                       <p className="font-display text-base font-extrabold text-brand-green mt-0.5">
                         {nominee.votes.toLocaleString()}{' '}
                         <span className="text-[11px] font-semibold text-brand-ink/50 lowercase">Votes</span>
@@ -99,6 +133,13 @@ export default function LiveResults() {
           })}
         </div>
       </div>
+
+      {/* Full Resolution Photo Lightbox Modal */}
+      <ImageModal
+        isOpen={!!selectedImageNominee}
+        data={selectedImageNominee}
+        onClose={() => setSelectedImageNominee(null)}
+      />
     </section>
   );
 }

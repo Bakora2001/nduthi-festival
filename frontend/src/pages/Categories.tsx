@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Bike, Trophy, Users, Cog, Camera, Star, ShieldCheck, Lock, TrendingUp, Info, ArrowRight, CheckCircle2, Clock } from 'lucide-react';
+import { Bike, Trophy, Users, Cog, Camera, Star, ShieldCheck, Lock, TrendingUp, Info, ArrowRight, CheckCircle2, Clock, ZoomIn } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
+import ImageModal, { ImageModalData } from '../components/ImageModal';
 
 const ICONS: Record<string, typeof Bike> = {
   rider: Bike,
@@ -17,6 +18,7 @@ const ACCENT_BTN = ['bg-[#0B8E36] hover:bg-[#076B29]', 'bg-[#D61F26] hover:bg-[#
 export default function Categories() {
   const { categories, nominees, totalVotes, castVote, isVotingEnabled } = useVote();
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const [selectedImageNominee, setSelectedImageNominee] = useState<ImageModalData | null>(null);
 
   const filteredNominees = selectedCatId
     ? nominees.filter((n) => n.categoryId === selectedCatId)
@@ -51,7 +53,7 @@ export default function Categories() {
               <span className="text-brand-ink">CATEGORIES & NOMINEES</span>
             </h1>
             <p className="text-sm text-brand-ink/60 mt-3 max-w-md leading-relaxed">
-              Explore the 10 official award categories, view registered participants across Eldoret & Kenya, or register yourself.
+              Explore the 10 official award categories, view registered participants across Eldoret & Kenya, or click any photo to zoom in.
             </p>
           </div>
 
@@ -192,16 +194,46 @@ export default function Categories() {
                       )}
 
                       <div className="flex items-start gap-4">
-                        <img
-                          src={nom.img || '/cat_rider_awards.jpg'}
-                          alt={nom.name}
-                          className="w-16 h-16 rounded-xl object-cover border border-black/5 shrink-0"
-                        />
+                        {/* Clickable Image with Zoom Popup */}
+                        <div
+                          onClick={() => setSelectedImageNominee({
+                            imageUrl: nom.img || '/cat_rider_awards.jpg',
+                            name: nom.name,
+                            categoryName: nom.categoryName,
+                            county: nom.county,
+                            make: nom.make,
+                            model: nom.model,
+                            registrationPlate: nom.registrationPlate,
+                          })}
+                          className="relative cursor-pointer group shrink-0"
+                          title="Click to view full photo"
+                        >
+                          <img
+                            src={nom.img || '/cat_rider_awards.jpg'}
+                            alt={nom.name}
+                            className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover border border-black/10 group-hover:scale-105 group-hover:shadow-md transition-all duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/35 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[1px]">
+                            <ZoomIn size={18} />
+                          </div>
+                        </div>
+
                         <div className="flex-1 min-w-0">
                           <span className="text-[10px] font-bold text-brand-green uppercase tracking-wide">
                             {nom.categoryName}
                           </span>
-                          <h3 className="font-display font-extrabold text-base text-brand-ink truncate leading-snug">
+                          <h3
+                            onClick={() => setSelectedImageNominee({
+                              imageUrl: nom.img || '/cat_rider_awards.jpg',
+                              name: nom.name,
+                              categoryName: nom.categoryName,
+                              county: nom.county,
+                              make: nom.make,
+                              model: nom.model,
+                              registrationPlate: nom.registrationPlate,
+                            })}
+                            className="font-display font-extrabold text-base text-brand-ink truncate leading-snug cursor-pointer hover:text-brand-green transition-colors"
+                          >
                             {nom.name}
                           </h3>
                           <p className="text-xs text-brand-ink/60 truncate mt-0.5">
@@ -265,6 +297,13 @@ export default function Categories() {
           </aside>
         </div>
       </section>
+
+      {/* Full Resolution Photo Lightbox Modal */}
+      <ImageModal
+        isOpen={!!selectedImageNominee}
+        data={selectedImageNominee}
+        onClose={() => setSelectedImageNominee(null)}
+      />
     </div>
   );
 }

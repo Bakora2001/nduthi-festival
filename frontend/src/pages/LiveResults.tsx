@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { Vote as VoteIcon, ArrowRight, Radio, Trophy, Award, Sparkles, Clock } from 'lucide-react';
+import { Vote as VoteIcon, ArrowRight, Radio, Trophy, Award, Sparkles, Clock, ZoomIn } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
+import ImageModal, { ImageModalData } from '../components/ImageModal';
 
 const RANK_COLORS: Record<number, string> = {
   1: '#F5C542',
@@ -12,6 +13,7 @@ const RANK_COLORS: Record<number, string> = {
 export default function LiveResults() {
   const { nominees, categories, totalVotes, castVote, isVotingEnabled } = useVote();
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
+  const [selectedImageNominee, setSelectedImageNominee] = useState<ImageModalData | null>(null);
 
   const filteredNominees = selectedCatId
     ? nominees.filter((n) => n.categoryId === selectedCatId)
@@ -37,7 +39,7 @@ export default function LiveResults() {
             </span>
           </h1>
           <p className="mt-2 text-sm text-brand-ink/60 max-w-md leading-relaxed">
-            Real-time voting statistics across Eldoret, Kenya. Scores update instantly via WebSockets as votes are cast.
+            Real-time voting statistics across Eldoret, Kenya. Click any participant's image to view full-size photos.
           </p>
         </div>
       </section>
@@ -184,13 +186,45 @@ export default function LiveResults() {
                       </div>
 
                       <div className="flex items-center gap-3 mb-3">
-                        <img
-                          src={n.img || '/cat_motorcycle.jpg'}
-                          alt={n.name}
-                          className="w-14 h-14 rounded-xl object-cover border border-black/5 shrink-0"
-                        />
+                        {/* Clickable Image Thumbnail */}
+                        <div
+                          onClick={() => setSelectedImageNominee({
+                            imageUrl: n.img || '/cat_motorcycle.jpg',
+                            name: n.name,
+                            categoryName: n.categoryName,
+                            county: n.county,
+                            make: n.make,
+                            model: n.model,
+                            registrationPlate: n.registrationPlate,
+                          })}
+                          className="relative cursor-pointer group shrink-0"
+                          title="Click to view full photo"
+                        >
+                          <img
+                            src={n.img || '/cat_motorcycle.jpg'}
+                            alt={n.name}
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover border border-black/10 group-hover:scale-105 group-hover:shadow-md transition-all duration-200"
+                          />
+                          <div className="absolute inset-0 bg-black/35 rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity backdrop-blur-[1px]">
+                            <ZoomIn size={16} />
+                          </div>
+                        </div>
+
                         <div className="min-w-0">
-                          <h4 className="font-display font-bold text-sm text-brand-ink truncate">{n.name}</h4>
+                          <h4
+                            onClick={() => setSelectedImageNominee({
+                              imageUrl: n.img || '/cat_motorcycle.jpg',
+                              name: n.name,
+                              categoryName: n.categoryName,
+                              county: n.county,
+                              make: n.make,
+                              model: n.model,
+                              registrationPlate: n.registrationPlate,
+                            })}
+                            className="font-display font-bold text-sm text-brand-ink truncate cursor-pointer hover:text-brand-green transition-colors"
+                          >
+                            {n.name}
+                          </h4>
                           <p className="text-[11px] text-brand-ink/50 truncate mt-0.5">{n.county || 'Eldoret, Kenya'}</p>
                           {n.make && (
                             <p className="text-[10px] font-semibold text-brand-ink/40 truncate">
@@ -228,6 +262,13 @@ export default function LiveResults() {
           )}
         </div>
       </div>
+
+      {/* Full Resolution Photo Lightbox Modal */}
+      <ImageModal
+        isOpen={!!selectedImageNominee}
+        data={selectedImageNominee}
+        onClose={() => setSelectedImageNominee(null)}
+      />
     </div>
   );
 }
