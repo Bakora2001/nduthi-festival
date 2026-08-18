@@ -22,8 +22,9 @@ export default function Hero() {
       {/* ── BG LAYER 1: Kenyan flag fills the right portion ── */}
       <img
         src="/hero_flag_bg.jpg"
-        alt=""
+        alt="Nduthi Festival Kenya — Kenyan flag background"
         aria-hidden="true"
+        fetchPriority="high"
         className="absolute top-0 right-0 h-full"
         style={{
           zIndex: 1,

@@ -1,0 +1,12 @@
+# Nduthi Festival & Awards Kenya — robots.txt
+# Allow all search engine crawlers
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /admin
+Disallow: /login
+Disallow: /register
+
+# Point crawlers to the sitemap
+Sitemap: https://nduthifestival.co.ke/sitemap.xml

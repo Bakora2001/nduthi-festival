@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bike, Trophy, Users, Cog, Camera, Star, ShieldCheck, Lock, TrendingUp, Info, ArrowRight, CheckCircle2, Clock, ZoomIn } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
 import ImageModal, { ImageModalData } from '../components/ImageModal';
+import SEO from '../components/SEO';
 
 const ICONS: Record<string, typeof Bike> = {
   rider: Bike,
@@ -26,6 +27,12 @@ export default function Categories() {
 
   return (
     <div>
+      <SEO
+        title="Award Categories & Nominees | Nduthi Festival Kenya"
+        description="Browse all award categories at the Nduthi Festival Kenya. Vote for your favourite riders, motorcycle clubs, and industry personalities. Kenya's premier motorcycle awards."
+        url="https://nduthifestival.co.ke/categories"
+        keywords="Nduthi Festival categories, nduthi nominees, nduthi vote, motorcycle awards categories Kenya, best rider Kenya, nduthi fest nominees 2025"
+      />
       {/* ── Page hero banner ── */}
       <section className="relative overflow-hidden bg-white border-b border-black/5" style={{ minHeight: 200 }}>
         <img

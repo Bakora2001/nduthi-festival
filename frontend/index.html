@@ -1,14 +1,172 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-KE">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- ═══════════════════════════════════════════
+         FAVICON — uses the actual Nduthi logo
+    ════════════════════════════════════════════ -->
+    <link rel="icon" type="image/png" href="/nduthi-logo.png" />
+    <link rel="apple-touch-icon" href="/nduthi-logo.png" />
+    <link rel="shortcut icon" href="/nduthi-logo.png" />
+
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Nduthi Festival & Awards Kenya — celebrating excellence, promoting safety, inspiring riders. Vote for your favourite riders, motorcycles and clubs." />
-    <title>Nduthi Festival & Awards Kenya</title>
+
+    <!-- ═══════════════════════════════════════════
+         PRIMARY SEO META TAGS
+    ════════════════════════════════════════════ -->
+    <title>Nduthi Festival &amp; Awards Kenya | Vote for the Best Riders</title>
+    <meta
+      name="description"
+      content="Nduthi Festival &amp; Awards Kenya — celebrating excellence, promoting safety and inspiring riders. Vote for your favourite riders, motorcycles and clubs at Kenya's #1 motorcycle festival."
+    />
+    <meta
+      name="keywords"
+      content="Nduthi Festival, Nduthi Festival Kenya, Nduthi Fest, Nduthi Fest Kenya, nduthi awards, motorcycle festival Kenya, boda boda awards, Kenya motorcycle community, nduthi awards 2025, best rider Kenya, nduthi vote, motorbike awards Kenya"
+    />
+    <meta name="author" content="Nduthi Festival &amp; Awards Kenya" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="theme-color" content="#0B8E36" />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://nduthifestival.co.ke/" />
+
+    <!-- ═══════════════════════════════════════════
+         OPEN GRAPH (Facebook, WhatsApp, LinkedIn)
+    ════════════════════════════════════════════ -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Nduthi Festival &amp; Awards Kenya" />
+    <meta property="og:title" content="Nduthi Festival &amp; Awards Kenya | Vote for the Best Riders" />
+    <meta
+      property="og:description"
+      content="Kenya's premier motorcycle festival &amp; awards. Vote for your favourite riders, clubs and motorcycles. Celebrating excellence in Kenya's riding community."
+    />
+    <meta property="og:url" content="https://nduthifestival.co.ke/" />
+    <meta property="og:image" content="https://nduthifestival.co.ke/nduthi-logo.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Nduthi Festival &amp; Awards Kenya Logo" />
+    <meta property="og:locale" content="en_KE" />
+
+    <!-- ═══════════════════════════════════════════
+         TWITTER CARD
+    ════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@NduthiFestival" />
+    <meta name="twitter:creator" content="@NduthiFestival" />
+    <meta name="twitter:title" content="Nduthi Festival &amp; Awards Kenya | Vote for the Best Riders" />
+    <meta
+      name="twitter:description"
+      content="Kenya's premier motorcycle festival &amp; awards. Vote for your favourite riders, clubs and motorcycles."
+    />
+    <meta name="twitter:image" content="https://nduthifestival.co.ke/nduthi-logo.png" />
+
+    <!-- ═══════════════════════════════════════════
+         SCHEMA.ORG STRUCTURED DATA (JSON-LD)
+         Enables Google Event Cards & Rich Results
+    ════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Event",
+          "@id": "https://nduthifestival.co.ke/#event",
+          "name": "Nduthi Festival &amp; Awards Kenya",
+          "alternateName": ["Nduthi Fest", "Nduthi Festival Kenya", "Nduthi Awards Kenya"],
+          "description": "Kenya's premier motorcycle festival and awards ceremony celebrating excellence, promoting safety, and inspiring riders across Kenya's motorcycle community. Vote for the best riders, clubs and motorcycles.",
+          "url": "https://nduthifestival.co.ke/",
+          "image": "https://nduthifestival.co.ke/nduthi-logo.png",
+          "eventStatus": "https://schema.org/EventScheduled",
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+          "location": {
+            "@type": "Place",
+            "name": "Kenya",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Eldoret",
+              "addressCountry": "KE"
+            }
+          },
+          "organizer": {
+            "@type": "Organization",
+            "name": "Nduthi Festival &amp; Awards Kenya",
+            "url": "https://nduthifestival.co.ke/"
+          },
+          "offers": {
+            "@type": "Offer",
+            "url": "https://nduthifestival.co.ke/categories",
+            "availability": "https://schema.org/InStock",
+            "priceCurrency": "KES",
+            "price": "0",
+            "description": "Free online voting"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://nduthifestival.co.ke/#organization",
+          "name": "Nduthi Festival &amp; Awards Kenya",
+          "alternateName": ["Nduthi Fest", "Nduthi Awards Kenya"],
+          "url": "https://nduthifestival.co.ke/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://nduthifestival.co.ke/nduthi-logo.png",
+            "width": 400,
+            "height": 400
+          },
+          "description": "Kenya's premier motorcycle festival and awards. Celebrating excellence, promoting safety and inspiring riders.",
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "telephone": "+254-700-123-456",
+            "email": "info@nduthiawards.co.ke",
+            "contactType": "customer service",
+            "areaServed": "KE",
+            "availableLanguage": "English"
+          },
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Eldoret",
+            "addressCountry": "KE"
+          },
+          "sameAs": [
+            "https://www.facebook.com/nduthifestival",
+            "https://www.instagram.com/nduthifestival",
+            "https://twitter.com/NduthiFestival",
+            "https://www.youtube.com/@nduthifestival"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://nduthifestival.co.ke/#website",
+          "name": "Nduthi Festival &amp; Awards Kenya",
+          "url": "https://nduthifestival.co.ke/",
+          "description": "Kenya's premier motorcycle festival and awards — vote for the best riders, clubs and motorcycles.",
+          "publisher": {
+            "@id": "https://nduthifestival.co.ke/#organization"
+          },
+          "inLanguage": "en-KE",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": {
+              "@type": "EntryPoint",
+              "urlTemplate": "https://nduthifestival.co.ke/categories?q={search_term_string}"
+            },
+            "query-input": "required name=search_term_string"
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800;900&family=Poppins:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>

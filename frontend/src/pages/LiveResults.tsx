@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Vote as VoteIcon, ArrowRight, Radio, Trophy, Award, Sparkles, Clock, ZoomIn } from 'lucide-react';
 import { useVote } from '../context/VoteContext';
 import ImageModal, { ImageModalData } from '../components/ImageModal';
+import SEO from '../components/SEO';
 
 const RANK_COLORS: Record<number, string> = {
   1: '#F5C542',
@@ -23,6 +24,12 @@ export default function LiveResults() {
 
   return (
     <div className="bg-white min-h-screen">
+      <SEO
+        title="Live Voting Results | Nduthi Festival & Awards Kenya"
+        description="See live voting results for the Nduthi Festival & Awards Kenya. Track who's winning in each category — riders, clubs, motorcycles and more. Vote now and make your voice count!"
+        url="https://nduthifestival.co.ke/live-results"
+        keywords="nduthi festival results, nduthi live voting, nduthi fest leaderboard, motorcycle awards results Kenya, nduthi vote results"
+      />
       {/* ── HERO BANNER ── */}
       <section className="relative overflow-hidden bg-white border-b border-black/5" style={{ minHeight: 180 }}>
         <img src="/hero_flag_bg.jpg" alt="" aria-hidden="true"
