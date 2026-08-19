@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="lg:col-span-1 md:col-span-2 space-y-4">
           <Logo />
           <p className="text-xs text-brand-ink/60 leading-relaxed max-w-xs">
-            Celebrating excellence, promoting safety, inspiring riders across Kenya's motorcycle community
+            Celebrating excellence, promoting safety, inspiring riders across Kenya's motorcycle community.
           </p>
           <div className="flex gap-3 pt-2">
             {[Facebook, Instagram, Youtube, Twitter].map((Icon, i) => (
@@ -64,7 +64,7 @@ export default function Footer() {
               ✉️ info@nduthiawards.co.ke
             </li>
             <li className="text-[11px] text-brand-ink/50">
-              📍 Eldoret, Kenya
+               Eldoret, Kenya
             </li>
           </ul>
         </div>
