@@ -1,7 +1,7 @@
 import { Facebook, Instagram, Youtube, Twitter } from 'lucide-react';
 import Logo from './Logo';
 
-const QUICK_LINKS = ['Home', 'Categories', 'Nominees', 'Live Results', 'Sponsors', 'Gallery'];
+const QUICK_LINKS = ['Home', 'Categories', 'Nominees', 'Live Results', 'News', 'Gallery', 'Contact'];
 const INFO_LINKS = ['About Us', 'How to Vote', 'FAQs', "Terms & Conditions", 'Privacy Policy', 'Refund Policy'];
 const CATEGORY_LINKS = ['001 Kenya', 'Rider of the Year', 'Nduthi Blogger of the Year', 'Best Rider group', 'Best customized nduthi', 'People\'s Choice of the Year'];
 

@@ -1,6 +1,8 @@
 import { sponsors } from '../data/mockData';
 
 export default function Sponsors() {
+  if (!sponsors || sponsors.length === 0) return null;
+
   return (
     <section className="py-12 bg-brand-green-light/40">
       <div className="container-nd">

@@ -63,7 +63,7 @@ export default function App() {
             <Route path="/categories/:slug" element={<Categories />} />
             <Route path="/nominees" element={<Categories />} />
             <Route path="/live-results" element={<LiveResults />} />
-            <Route path="/sponsors" element={<PlaceholderPage title="Sponsors & Partners" description="Meet our proud sponsors who make the Nduthi Festival possible." />} />
+            <Route path="/sponsors" element={<PlaceholderPage title="Sponsorship Opportunities" description="Official partnership & sponsorship opportunities for the Nduthi Festival are open. Reach out via our contact page to partner with Kenya's premier motorcycle awards." />} />
             <Route path="/news" element={<PlaceholderPage title="News & Updates" description="Latest news from the Nduthi Festival & Awards Kenya." />} />
             <Route path="/gallery" element={<PlaceholderPage title="Gallery" description="Photos and videos from the festival." />} />
             <Route path="/contact" element={<Contact />} />

@@ -37,15 +37,7 @@ export const leaderboard: LeaderboardEntry[] = [
   { rank: 5, name: 'Kelvin Wanjala', category: 'Rider of the Year', votes: 1432 },
 ];
 
-export const sponsors: Sponsor[] = [
-  { id: 's1', name: 'TVS Kenya' },
-  { id: 's2', name: 'Shell' },
-  { id: 's3', name: 'Safaricom' },
-  { id: 's4', name: 'Airtel' },
-  { id: 's5', name: 'Jubilee Insurance' },
-  { id: 's6', name: 'KCB' },
-  { id: 's7', name: 'Honda' },
-];
+export const sponsors: Sponsor[] = [];
 
 export const newsItems: NewsItem[] = [
   { id: 'a1', title: 'Nduthi Festival 2025 Date Announced!', excerpt: 'The biggest motorcycle celebration is coming to your county.', date: 'May 20, 2025' },

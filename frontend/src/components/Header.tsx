@@ -7,7 +7,6 @@ const NAV_LINKS = [
   { label: 'Categories', href: '/categories' },
   { label: 'Nominees', href: '/nominees' },
   { label: 'Live Results', href: '/live-results' },
-  { label: 'Sponsors', href: '/sponsors' },
   { label: 'News', href: '/news' },
   { label: 'Gallery', href: '/gallery' },
   { label: 'Contact', href: '/contact' },

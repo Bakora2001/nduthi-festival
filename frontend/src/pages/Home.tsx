@@ -4,7 +4,6 @@ import LiveResults from '../components/LiveResults';
 import BrowseCategories from '../components/BrowseCategories';
 import OverallLeaderboard from '../components/OverallLeaderboard';
 import HowToVote from '../components/HowToVote';
-import Sponsors from '../components/Sponsors';
 import News from '../components/News';
 import Newsletter from '../components/Newsletter';
 import SEO from '../components/SEO';
@@ -30,7 +29,6 @@ export default function Home() {
       </section>
 
       <HowToVote />
-      <Sponsors />
       <News />
       <Newsletter />
     </>
