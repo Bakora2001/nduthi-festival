@@ -9,16 +9,7 @@ export function getCategoryRegistrationFee(category: { name: string; slug?: stri
   const normName = category.name.toLowerCase().trim();
   const normSlug = (category.slug || '').toLowerCase().trim();
 
-  // 1. 001 Kenya, Rider of the Year, Best Motorcycle dealer of the Year -> KES 1000
-  if (
-    normName.includes('001') || normSlug.includes('001') ||
-    normName.includes('rider of the year') || normSlug.includes('rider-of-the-year') ||
-    normName.includes('dealer') || normSlug.includes('dealer')
-  ) {
-    return 1000;
-  }
-
-  // 2. Best Rider group -> KES 5000
+  // 1. Best Rider group -> KES 5000
   if (
     normName.includes('group') || normSlug.includes('group') ||
     normName.includes('club') || normSlug.includes('club')
@@ -26,8 +17,8 @@ export function getCategoryRegistrationFee(category: { name: string; slug?: stri
     return 5000;
   }
 
-  // 3. The rest categories -> KES 500
-  return 500;
+  // 2. All standard categories -> KES 1000
+  return 1000;
 }
 
 export interface RegisterParticipantInput {

@@ -33,7 +33,7 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'nduthi-blogger-of-the-year',
     description: 'Recognizing top digital creators, vloggers, and bloggers promoting biker culture, road safety, and lifestyle.',
     icon: 'camera',
-    fee: 500,
+    fee: 1000,
     coverImage: '/cat_media.jpg',
   },
   {
@@ -51,7 +51,7 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'best-customized-nduthi',
     description: 'Awarding the most creative, stylish, and meticulously modified motorcycle with unmatched aesthetics.',
     icon: 'industry',
-    fee: 500,
+    fee: 1000,
     coverImage: '/nominee_bike_2.jpg',
   },
   {
@@ -60,7 +60,7 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'best-mechanic-of-the-year',
     description: 'Recognizing master technicians and mechanics providing exceptional motorcycle repair, tuning, and maintenance.',
     icon: 'industry',
-    fee: 500,
+    fee: 1000,
     coverImage: '/cat_industry.jpg',
   },
   {
@@ -78,7 +78,7 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'best-female-rider-of-year',
     description: 'Celebrating inspiring women riders who break boundaries, inspire others, and excel on two wheels.',
     icon: 'star',
-    fee: 500,
+    fee: 1000,
     coverImage: '/cat_rider_awards.jpg',
   },
   {
@@ -87,7 +87,7 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'peoples-choice-of-the-year',
     description: 'The overall crowd favourite decided purely by public votes across Kenya.',
     icon: 'star',
-    fee: 500,
+    fee: 1000,
     coverImage: '/cat_special.jpg',
   },
   {
@@ -96,26 +96,17 @@ export const OFFICIAL_CATEGORIES: OfficialCategory[] = [
     slug: 'best-charity-initiative-of-the-year',
     description: 'Recognizing biker-led philanthropic activities, community service, medical drives, and charity tours.',
     icon: 'star',
-    fee: 500,
+    fee: 1000,
     coverImage: '/cat_special.jpg',
   },
 ];
 
 export function getCategoryFeeByObject(category?: { name?: string; slug?: string } | null): number {
-  if (!category || !category.name) return 500;
+  if (!category || !category.name) return 1000;
   const name = category.name.toLowerCase().trim();
   const slug = (category.slug || '').toLowerCase().trim();
 
-  // 1. 001 Kenya, Rider of the Year, Best Motorcycle dealer of the Year -> KES 1000
-  if (
-    name.includes('001') || slug.includes('001') ||
-    name.includes('rider of the year') || slug.includes('rider-of-the-year') ||
-    name.includes('dealer') || slug.includes('dealer')
-  ) {
-    return 1000;
-  }
-
-  // 2. Best Rider group -> KES 5000
+  // 1. Best Rider group -> KES 5000
   if (
     name.includes('group') || slug.includes('group') ||
     name.includes('club') || slug.includes('club')
@@ -123,6 +114,6 @@ export function getCategoryFeeByObject(category?: { name?: string; slug?: string
     return 5000;
   }
 
-  // 3. Other categories -> KES 500
-  return 500;
+  // 2. All standard categories -> KES 1000
+  return 1000;
 }

@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import Categories from './pages/Categories';
 import LiveResults from './pages/LiveResults';
+import Contact from './pages/Contact';
 import AuthPage from './pages/AuthPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import AdminLayout from './pages/admin/AdminLayout';
@@ -65,7 +66,7 @@ export default function App() {
             <Route path="/sponsors" element={<PlaceholderPage title="Sponsors & Partners" description="Meet our proud sponsors who make the Nduthi Festival possible." />} />
             <Route path="/news" element={<PlaceholderPage title="News & Updates" description="Latest news from the Nduthi Festival & Awards Kenya." />} />
             <Route path="/gallery" element={<PlaceholderPage title="Gallery" description="Photos and videos from the festival." />} />
-            <Route path="/contact" element={<PlaceholderPage title="Contact Us" description="Get in touch with the Nduthi Festival team." />} />
+            <Route path="/contact" element={<Contact />} />
             <Route path="*" element={<PlaceholderPage title="Page Not Found" description="The page you're looking for doesn't exist." />} />
           </Route>
 

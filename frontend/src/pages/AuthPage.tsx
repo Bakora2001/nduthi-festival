@@ -518,9 +518,8 @@ export default function AuthPage() {
                       })}
                     </select>
                     <p className="text-[10px] text-brand-ink/50 mt-1">
-                      • 001 Kenya, Rider of the Year, Best Motorcycle dealer: <strong>KES 1,000</strong><br />
-                      • Best Rider group: <strong>KES 5,000</strong><br />
-                      • Other categories: <strong>KES 500</strong>
+                      • Standard Categories (Rider, Dealer, Blogger, Mechanic, etc.): <strong>KES 1,000</strong><br />
+                      • Best Rider group: <strong>KES 5,000</strong>
                     </p>
                   </div>
 

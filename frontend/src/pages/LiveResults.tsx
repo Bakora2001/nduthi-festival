@@ -37,7 +37,7 @@ export default function LiveResults() {
               <span className="text-brand-red">RESULTS & LEADERBOARD</span>
             </h1>
             <span className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-green bg-brand-green/10 border border-brand-green/20 px-3 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse" /> WEBSOCKET LIVE
+              <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse" /> LIVE TALLY
             </span>
           </div>
           <p className="mt-2 text-sm text-brand-ink/60 max-w-md leading-relaxed">
@@ -52,13 +52,7 @@ export default function LiveResults() {
           <StatBox icon="📊" label="Total Votes Cast" value={totalVotes.toLocaleString()} />
           <StatBox icon="🏍️" label="Registered Participants" value={String(nominees.length)} />
           <StatBox icon="🏆" label="Award Categories" value={String(categories.length)} />
-          <div className="flex flex-col justify-center items-center rounded-xl border border-brand-green/20 bg-brand-green/5 px-4 py-2.5 text-center shadow-sm">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <Radio size={14} className="text-brand-green animate-pulse" />
-              <span className="text-xs font-extrabold text-brand-green">INSTANT SYNC</span>
-            </div>
-            <p className="text-[10px] text-brand-ink/60 font-semibold">WebSockets Connected</p>
-          </div>
+          <StatBox icon="⚡" label="Leaderboard Status" value={isVotingEnabled ? 'Voting Active' : 'Live Standings'} />
         </div>
       </div>
 

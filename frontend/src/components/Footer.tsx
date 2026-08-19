@@ -33,11 +33,39 @@ export default function Footer() {
         <FooterColumn title="Categories" items={CATEGORY_LINKS} />
 
         <div className="space-y-3">
-          <h4 className="text-brand-ink font-display font-extrabold text-xs tracking-wider uppercase">Contact Us</h4>
-          <ul className="space-y-2 text-sm text-brand-ink/60">
-            <li>+254 700 123 456</li>
-            <li>info@nduthiawards.co.ke</li>
-            <li>Eldoret, Kenya</li>
+          <h4 className="text-brand-ink font-display font-extrabold text-xs tracking-wider uppercase">Contact Helplines</h4>
+          <ul className="space-y-1.5 text-xs text-brand-ink/70">
+            <li>
+              <a href="tel:0725918002" className="hover:text-brand-green font-semibold transition-colors">
+                📞 0725 918 002
+              </a>
+            </li>
+            <li>
+              <a href="tel:0717747668" className="hover:text-brand-green font-semibold transition-colors">
+                📞 0717 747 668
+              </a>
+            </li>
+            <li>
+              <a href="tel:0714092875" className="hover:text-brand-green font-semibold transition-colors">
+                📞 0714 092 875
+              </a>
+            </li>
+            <li>
+              <a href="tel:0797289641" className="hover:text-brand-green font-semibold transition-colors">
+                📞 0797 289 641
+              </a>
+            </li>
+            <li>
+              <a href="tel:0794798029" className="hover:text-brand-green font-semibold transition-colors">
+                📞 0794 798 029
+              </a>
+            </li>
+            <li className="pt-1 text-[11px] text-brand-ink/50">
+              ✉️ info@nduthiawards.co.ke
+            </li>
+            <li className="text-[11px] text-brand-ink/50">
+              📍 Eldoret, Kenya
+            </li>
           </ul>
         </div>
       </div>
