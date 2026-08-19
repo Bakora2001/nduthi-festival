@@ -98,7 +98,22 @@ export const nomineesService = {
       throw new AppError('Phone number is required for M-Pesa payment', 400);
     }
 
-    const category = await prisma.category.findUnique({ where: { id: input.categoryId } });
+    let category = await prisma.category.findUnique({ where: { id: input.categoryId } }).catch(() => null);
+    if (!category) {
+      const cleanSlug = input.categoryId.replace(/^cat-/, '');
+      category = await prisma.category.findFirst({
+        where: {
+          OR: [
+            { slug: cleanSlug },
+            { slug: input.categoryId },
+            { name: { contains: cleanSlug.replace(/-/g, ' '), mode: 'insensitive' } },
+          ],
+        },
+      });
+    }
+    if (!category) {
+      category = await prisma.category.findFirst();
+    }
     if (!category) {
       throw new AppError('Selected category does not exist', 404);
     }

@@ -6,6 +6,7 @@ import {
   AlertCircle, Receipt, RefreshCw, Upload, Image as ImageIcon, X
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { OFFICIAL_CATEGORIES, getCategoryFeeByObject } from '../data/categoriesData';
 
 type Tab = 'login' | 'register';
 type AccountType = 'VOTER' | 'PARTICIPANT';
@@ -26,29 +27,7 @@ const FEATURES = [
 ];
 
 export function getCategoryFee(category: CategoryItem | undefined): number {
-  if (!category) return 500;
-  const normName = category.name.toLowerCase().trim();
-  const normSlug = (category.slug || '').toLowerCase().trim();
-
-  // 1. 001 Kenya, Rider of the Year, Best Motorcycle dealer of the Year -> KES 1000
-  if (
-    normName.includes('001') || normSlug.includes('001') ||
-    normName.includes('rider of the year') || normSlug.includes('rider-of-the-year') ||
-    normName.includes('dealer') || normSlug.includes('dealer')
-  ) {
-    return 1000;
-  }
-
-  // 2. Best Rider group -> KES 5000
-  if (
-    normName.includes('group') || normSlug.includes('group') ||
-    normName.includes('club') || normSlug.includes('club')
-  ) {
-    return 5000;
-  }
-
-  // 3. The rest categories -> KES 500
-  return 500;
+  return getCategoryFeeByObject(category);
 }
 
 export default function AuthPage() {
@@ -58,8 +37,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  /* ── Categories state for participant registration ── */
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  /* ── Categories state for participant registration (initialized with 10 official categories) ── */
+  const [categories, setCategories] = useState<CategoryItem[]>(OFFICIAL_CATEGORIES);
 
   /* ── Login state ── */
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -72,7 +51,7 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   /* ── Participant state ── */
-  const [categoryId, setCategoryId] = useState('');
+  const [categoryId, setCategoryId] = useState(OFFICIAL_CATEGORIES[0].id);
   const [county, setCounty] = useState('Eldoret, Kenya');
   const [stageName, setStageName] = useState('');
   const [bikeMake, setBikeMake] = useState('Boxer');
@@ -84,7 +63,7 @@ export default function AuthPage() {
   /* ── Participant Payment Modal State ── */
   const [regPaymentStep, setRegPaymentStep] = useState<RegPaymentStep>('idle');
   const [regPaymentId, setRegPaymentId] = useState<string | null>(null);
-  const [regPaymentFee, setRegPaymentFee] = useState<number>(500);
+  const [regPaymentFee, setRegPaymentFee] = useState<number>(1000);
   const [regPaymentError, setRegPaymentError] = useState<string | null>(null);
   const [regPaymentMpesaRef, setRegPaymentMpesaRef] = useState<string | null>(null);
 
@@ -92,14 +71,16 @@ export default function AuthPage() {
     // Fetch categories dynamically from backend
     api.get('/categories')
       .then((res) => {
-        const cats = res.data?.data || res.data || [];
-        setCategories(cats);
-        if (cats.length > 0) setCategoryId(cats[0].id);
+        const raw = res.data?.data || res.data;
+        if (Array.isArray(raw) && raw.length > 0) {
+          setCategories(raw);
+          setCategoryId(raw[0].id);
+        }
       })
-      .catch((err) => console.error('Failed to load categories:', err));
+      .catch((err) => console.log('Using default official categories:', err));
   }, []);
 
-  const selectedCategoryObj = categories.find((c) => c.id === categoryId);
+  const selectedCategoryObj = categories.find((c) => c.id === categoryId) || OFFICIAL_CATEGORIES[0];
   const currentParticipantFee = getCategoryFee(selectedCategoryObj);
 
   /* ── Handle Image Selection ── */

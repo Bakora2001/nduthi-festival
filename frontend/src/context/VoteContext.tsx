@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSocket, SOCKET_EVENTS } from '../lib/socket';
 import { api } from '../lib/api';
+import { OFFICIAL_CATEGORIES } from '../data/categoriesData';
 
 // Flag to control voting status (Set to false to allow participants to register first)
 export const VOTING_ENABLED = false;
@@ -65,9 +66,20 @@ interface VoteContextType {
 
 const VoteContext = createContext<VoteContextType | undefined>(undefined);
 
+const DEFAULT_CATEGORY_ITEMS: CategoryItem[] = OFFICIAL_CATEGORIES.map((c) => ({
+  id: c.id,
+  name: c.name,
+  slug: c.slug,
+  description: c.description,
+  icon: c.icon,
+  coverImage: c.coverImage,
+  nomineeCount: 0,
+  totalVotes: 0,
+}));
+
 export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [nominees, setNominees] = useState<NomineeVote[]>([]);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>(DEFAULT_CATEGORY_ITEMS);
   const [totalVotes, setTotalVotes] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -112,18 +124,21 @@ export const VoteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ? catRes.data
         : (catRes.data?.data || []);
 
-      const formattedCategories: CategoryItem[] = rawCategories.map((c: any) => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug || c.id,
-        description: c.description,
-        icon: c.icon || '🏆',
-        coverImage: c.coverImage || '/cat_rider_awards.jpg',
-        nomineeCount: c._count?.nominees ?? (c.nominees ? c.nominees.length : 0),
-        totalVotes: c.totalVotes || 0,
-      }));
-
-      setCategories(formattedCategories);
+      if (rawCategories.length > 0) {
+        const formattedCategories: CategoryItem[] = rawCategories.map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug || c.id,
+          description: c.description,
+          icon: c.icon || '🏆',
+          coverImage: c.coverImage || '/cat_rider_awards.jpg',
+          nomineeCount: c._count?.nominees ?? (c.nominees ? c.nominees.length : 0),
+          totalVotes: c.totalVotes || 0,
+        }));
+        setCategories(formattedCategories);
+      } else {
+        setCategories(DEFAULT_CATEGORY_ITEMS);
+      }
 
       const rawNominees = Array.isArray(nomRes.data)
         ? nomRes.data
