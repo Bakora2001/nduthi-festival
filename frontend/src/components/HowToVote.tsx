@@ -38,7 +38,7 @@ export default function HowToVote() {
           <ShieldCheck size={20} className="text-brand-green shrink-0" />
           <p className="text-sm text-brand-ink/75">
             <span className="font-semibold text-brand-ink">Every vote is verified, secure and transparent.</span>{' '}
-            You pay. You vote. Make a difference.
+            You pay. You vote. You make a difference.
           </p>
         </div>
       </div>
