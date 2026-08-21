@@ -61,7 +61,7 @@ export default function Footer() {
               </a>
             </li>
             <li className="pt-1 text-[11px] text-brand-ink/50">
-              ✉️ info@nduthiawards.co.ke
+              ✉️ info@nduthifestivalawards.co.ke
             </li>
             <li className="text-[11px] text-brand-ink/50">
                Eldoret, Kenya
